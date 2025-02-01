@@ -1,0 +1,15 @@
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+task-trackerd
+fuzz/fuzz_web_server_https_request
+fuzz/fuzz_web_server_https_url
+unit_tests
+
+/configuration.json
+/tasks.json
+/*.csr
+/*.crt
+/*.key

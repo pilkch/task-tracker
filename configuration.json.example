@@ -1,0 +1,9 @@
+{
+  "settings": {
+    "running_in_container": true,
+    "https_host": "192.168.0.3",
+    "https_port": 8443,
+    "https_private_key": "./server.key",
+    "https_public_cert": "./server.crt"
+  }
+}
