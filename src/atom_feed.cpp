@@ -38,12 +38,13 @@ std::string GenerateFeedID()
   return "urn:uuid:" + GetRandomHexCharacters(8) + "-" + GetRandomHexCharacters(4) + "-" + GetRandomHexCharacters(4) + "-" + GetRandomHexCharacters(4) + "-" + GetRandomHexCharacters(12);
 }
 
-class cXMLFileWriter {
-public:
-  cXMLFileWriter();
-  ~cXMLFileWriter();
 
-  bool Open(const std::string& file_path);
+class cXMLStringWriter {
+public:
+  cXMLStringWriter();
+  ~cXMLStringWriter();
+
+  bool Open();
   void Close();
 
   bool BeginDocument();
@@ -56,32 +57,45 @@ public:
   bool WriteElementAttribute(const std::string& name, const std::string& value);
   bool WriteElementWithContent(const std::string& name, const std::string& content);
 
+  const char* GetOutput() const { return (((buf != nullptr) && (buf->content != nullptr)) ? (const char*)(buf->content) : ""); }
+
 private:
   xmlTextWriterPtr writer;
+  xmlBufferPtr buf;
 };
 
-cXMLFileWriter::cXMLFileWriter() :
-  writer(nullptr)
+cXMLStringWriter::cXMLStringWriter() :
+  writer(nullptr),
+  buf(nullptr)
 {
 }
 
-cXMLFileWriter::~cXMLFileWriter()
-{
-  if (writer != nullptr) {
-    xmlFreeTextWriter(writer);
-    writer = nullptr;
-  }
-}
-
-bool cXMLFileWriter::Open(const std::string& file_path)
+cXMLStringWriter::~cXMLStringWriter()
 {
   Close();
 
-  writer = xmlNewTextWriterFilename("./output.xml", 0);
+  xmlBufferFree(buf);
+  buf = nullptr;
+}
+
+bool cXMLStringWriter::Open()
+{
+  Close();
+
+  /* Create a new XML buffer, to which the XML document will be
+    * written */
+  buf = xmlBufferCreate();
+  if (buf == nullptr) {
+    return false;
+  }
+
+  /* Create a new XmlWriter for memory, with no compression.
+    * Remark: there is no compression for this kind of xmlTextWriter */
+  writer = xmlNewTextWriterMemory(buf, 0);
   return (writer != nullptr);
 }
 
-void cXMLFileWriter::Close()
+void cXMLStringWriter::Close()
 {
   if (writer != nullptr) {
     xmlFreeTextWriter(writer);
@@ -89,7 +103,7 @@ void cXMLFileWriter::Close()
   }
 }
 
-bool cXMLFileWriter::BeginDocument()
+bool cXMLStringWriter::BeginDocument()
 {
   if (writer == nullptr) {
     return false;
@@ -104,37 +118,42 @@ bool cXMLFileWriter::BeginDocument()
   return (result >= 0);
 }
 
-bool cXMLFileWriter::EndDocument()
+bool cXMLStringWriter::EndDocument()
 {
   const int result = xmlTextWriterEndDocument(writer);
-  return (result >= 0);
+  if (result < 0) {
+    return false;
+  }
+
+  Close();
+  return true;
 }
 
-bool cXMLFileWriter::BeginElement(const std::string& name)
+bool cXMLStringWriter::BeginElement(const std::string& name)
 {
   const int result = xmlTextWriterStartElement(writer, BAD_CAST name.c_str());
   return (result >= 0);
 }
 
-bool cXMLFileWriter::EndElement()
+bool cXMLStringWriter::EndElement()
 {
   const int result = xmlTextWriterEndElement(writer);
   return (result >= 0);
 }
 
-bool cXMLFileWriter::WriteElementNamespace(const std::string& name, const std::string& value)
+bool cXMLStringWriter::WriteElementNamespace(const std::string& name, const std::string& value)
 {
   const int result = xmlTextWriterWriteAttributeNS(writer, nullptr, BAD_CAST name.c_str(), nullptr, BAD_CAST value.c_str());
   return (result >= 0);
 }
 
-bool cXMLFileWriter::WriteElementAttribute(const std::string& name, const std::string& value)
+bool cXMLStringWriter::WriteElementAttribute(const std::string& name, const std::string& value)
 {
   const int result = xmlTextWriterWriteAttribute(writer, BAD_CAST name.c_str(), BAD_CAST value.c_str());
   return (result >= 0);
 }
 
-bool cXMLFileWriter::WriteElementWithContent(const std::string& name, const std::string& content)
+bool cXMLStringWriter::WriteElementWithContent(const std::string& name, const std::string& content)
 {
   const int result = xmlTextWriterWriteElement(writer, BAD_CAST name.c_str(), BAD_CAST content.c_str());
   return (result >= 0);
@@ -149,7 +168,7 @@ bool cXMLFileWriter::WriteElementWithContent(const std::string& name, const std:
     <summary>Some text.</summary>
   </entry>
 */
-bool AddEntry(cXMLFileWriter& writer)
+bool AddEntry(cXMLStringWriter& writer)
 {
   // Start the entry element
   if (!writer.BeginElement("entry")) {
@@ -229,10 +248,10 @@ bool WriteFeedXML(std::ostringstream& output)
 {
   output.clear();
 
-  cXMLFileWriter writer;
+  cXMLStringWriter writer;
 
   // Create a new XML writer context
-  if (!writer.Open("./output.xml")) {
+  if (!writer.Open()) {
     std::cerr<<"Failed to create XML writer context"<<std::endl;
     return false;
   }
@@ -313,6 +332,8 @@ bool WriteFeedXML(std::ostringstream& output)
     std::cerr<<"Failed to end document"<<std::endl;
     return false;
   }
+
+  output<<writer.GetOutput();
 
   return true;
 }
