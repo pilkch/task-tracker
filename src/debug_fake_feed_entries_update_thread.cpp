@@ -34,6 +34,8 @@ void cDebugFakeFeedEntriesUpdateThread::MainLoop()
   };
   const size_t n = 10;
 
+  util::cPseudoRandomNumberGenerator rng;
+
   for (size_t i = 0; i < n; i++) {
     // Wait 5 seconds between adding each entry
     util::msleep(5000);
@@ -41,8 +43,8 @@ void cDebugFakeFeedEntriesUpdateThread::MainLoop()
     cFeedEntry entry;
     entry.title = fake_entries[i];
     entry.summary = "This is a summary";
-    entry.date_updated = util::GetTimeMS();
-    entry.id = feed::GenerateFeedID();
+    entry.date_updated = util::GetTime();
+    entry.id = feed::GenerateFeedID(rng);
 
     // Add this entry
     {

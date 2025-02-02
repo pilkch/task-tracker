@@ -3,10 +3,13 @@
 #include <string>
 #include <sstream>
 
+#include "feed_data.h"
+#include "random.h"
+
 namespace feed {
 
-std::string GenerateFeedID();
+std::string GenerateFeedID(util::cPseudoRandomNumberGenerator& rng);
 
-bool WriteFeedXML(std::ostringstream& output);
+bool WriteFeedXML(const tasktracker::cFeedData& feed_data, std::ostringstream& output);
 
 }

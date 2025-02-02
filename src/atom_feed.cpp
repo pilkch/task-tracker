@@ -2,10 +2,9 @@
 #include <sstream>
 #include <string>
 
-#include <libxml/xmlwriter.h>
-
 #include "atom_feed.h"
 #include "util.h"
+#include "xml_string_writer.h"
 
 namespace {
 
@@ -13,17 +12,17 @@ const char hex_lookup[] = {
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 };
 
-char GetRandomHexCharacter()
+char GetRandomHexCharacter(util::cPseudoRandomNumberGenerator& rng)
 {
   // Return a pseudorandom alphanumeric character
-  return hex_lookup[rand() % 16];
+  return hex_lookup[rng.random(16)];
 }
 
-std::string GetRandomHexCharacters(size_t length)
+std::string GetRandomHexCharacters(util::cPseudoRandomNumberGenerator& rng, size_t length)
 {
   std::ostringstream o;
   for (size_t i = 0; i < length; i++) {
-    o<<GetRandomHexCharacter();
+    o<<GetRandomHexCharacter(rng);
   }
   return o.str();
 }
@@ -32,132 +31,12 @@ std::string GetRandomHexCharacters(size_t length)
 
 namespace feed {
 
-std::string GenerateFeedID()
+std::string GenerateFeedID(util::cPseudoRandomNumberGenerator& rng)
 {
   // Return something like "urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6"
-  return "urn:uuid:" + GetRandomHexCharacters(8) + "-" + GetRandomHexCharacters(4) + "-" + GetRandomHexCharacters(4) + "-" + GetRandomHexCharacters(4) + "-" + GetRandomHexCharacters(12);
+  return "urn:uuid:" + GetRandomHexCharacters(rng, 8) + "-" + GetRandomHexCharacters(rng, 4) + "-" + GetRandomHexCharacters(rng, 4) + "-" + GetRandomHexCharacters(rng, 4) + "-" + GetRandomHexCharacters(rng, 12);
 }
 
-
-class cXMLStringWriter {
-public:
-  cXMLStringWriter();
-  ~cXMLStringWriter();
-
-  bool Open();
-  void Close();
-
-  bool BeginDocument();
-  bool EndDocument();
-
-  bool BeginElement(const std::string& name);
-  bool EndElement();
-
-  bool WriteElementNamespace(const std::string& name, const std::string& value);
-  bool WriteElementAttribute(const std::string& name, const std::string& value);
-  bool WriteElementWithContent(const std::string& name, const std::string& content);
-
-  const char* GetOutput() const { return (((buf != nullptr) && (buf->content != nullptr)) ? (const char*)(buf->content) : ""); }
-
-private:
-  xmlTextWriterPtr writer;
-  xmlBufferPtr buf;
-};
-
-cXMLStringWriter::cXMLStringWriter() :
-  writer(nullptr),
-  buf(nullptr)
-{
-}
-
-cXMLStringWriter::~cXMLStringWriter()
-{
-  Close();
-
-  xmlBufferFree(buf);
-  buf = nullptr;
-}
-
-bool cXMLStringWriter::Open()
-{
-  Close();
-
-  /* Create a new XML buffer, to which the XML document will be
-    * written */
-  buf = xmlBufferCreate();
-  if (buf == nullptr) {
-    return false;
-  }
-
-  /* Create a new XmlWriter for memory, with no compression.
-    * Remark: there is no compression for this kind of xmlTextWriter */
-  writer = xmlNewTextWriterMemory(buf, 0);
-  return (writer != nullptr);
-}
-
-void cXMLStringWriter::Close()
-{
-  if (writer != nullptr) {
-    xmlFreeTextWriter(writer);
-    writer = nullptr;
-  }
-}
-
-bool cXMLStringWriter::BeginDocument()
-{
-  if (writer == nullptr) {
-    return false;
-  }
-
-  // Set the formatting options for the XML document.
-  xmlTextWriterSetIndent(writer, 1);
-  xmlTextWriterSetIndentString(writer, BAD_CAST "  ");
-
-  // Start the XML document with the XML declaration.
-  const int result = xmlTextWriterStartDocument(writer, nullptr, "UTF-8", nullptr);
-  return (result >= 0);
-}
-
-bool cXMLStringWriter::EndDocument()
-{
-  const int result = xmlTextWriterEndDocument(writer);
-  if (result < 0) {
-    return false;
-  }
-
-  Close();
-  return true;
-}
-
-bool cXMLStringWriter::BeginElement(const std::string& name)
-{
-  const int result = xmlTextWriterStartElement(writer, BAD_CAST name.c_str());
-  return (result >= 0);
-}
-
-bool cXMLStringWriter::EndElement()
-{
-  const int result = xmlTextWriterEndElement(writer);
-  return (result >= 0);
-}
-
-bool cXMLStringWriter::WriteElementNamespace(const std::string& name, const std::string& value)
-{
-  const int result = xmlTextWriterWriteAttributeNS(writer, nullptr, BAD_CAST name.c_str(), nullptr, BAD_CAST value.c_str());
-  return (result >= 0);
-}
-
-bool cXMLStringWriter::WriteElementAttribute(const std::string& name, const std::string& value)
-{
-  const int result = xmlTextWriterWriteAttribute(writer, BAD_CAST name.c_str(), BAD_CAST value.c_str());
-  return (result >= 0);
-}
-
-bool cXMLStringWriter::WriteElementWithContent(const std::string& name, const std::string& content)
-{
-  const int result = xmlTextWriterWriteElement(writer, BAD_CAST name.c_str(), BAD_CAST content.c_str());
-  return (result >= 0);
-}
 
 /*
   <entry>
@@ -168,7 +47,7 @@ bool cXMLStringWriter::WriteElementWithContent(const std::string& name, const st
     <summary>Some text.</summary>
   </entry>
 */
-bool AddEntry(cXMLStringWriter& writer)
+bool WriteFeedXMLEntry(util::cXMLStringWriter& writer, const tasktracker::cFeedEntry& entry)
 {
   // Start the entry element
   if (!writer.BeginElement("entry")) {
@@ -177,7 +56,7 @@ bool AddEntry(cXMLStringWriter& writer)
   }
 
   // Write the title element
-  if (!writer.WriteElementWithContent("title", "Atom-Powered Robots Run Amok")) {
+  if (!writer.WriteElementWithContent("title", entry.title)) {
     std::cerr<<"Failed to write title element"<<std::endl;
     return false;
   }
@@ -187,7 +66,7 @@ bool AddEntry(cXMLStringWriter& writer)
     std::cerr<<"Failed to begin link element"<<std::endl;
     return false;
   }
-  if (!writer.WriteElementAttribute("href", "http://example.org/2003/12/13/atom03")) {
+  if (!writer.WriteElementAttribute("href", entry.link)) {
     std::cerr<<"Failed to add link href attribute"<<std::endl;
     return false;
   }
@@ -197,18 +76,19 @@ bool AddEntry(cXMLStringWriter& writer)
   }
 
   // Write the id element
-  if (!writer.WriteElementWithContent("id", GenerateFeedID())) {
+  if (!writer.WriteElementWithContent("id", entry.id)) {
     std::cerr<<"Failed to write id element"<<std::endl;
     return false;
   }
 
-  if (!writer.WriteElementWithContent("updated", "2003-12-13T18:30:02Z")) {
+  // TODO: Convert entry.time to the date time
+  if (!writer.WriteElementWithContent("updated", util::GetDateTimeUTCISO8601(entry.date_updated))) {
     std::cerr<<"Failed to write child XML element"<<std::endl;
     return false;
   }
 
   // Write the summary element
-  if (!writer.WriteElementWithContent("summary", "Some text.")) {
+  if (!writer.WriteElementWithContent("summary", entry.summary)) {
     std::cerr<<"Failed to write summary element"<<std::endl;
     return false;
   }
@@ -244,11 +124,11 @@ bool AddEntry(cXMLStringWriter& writer)
 
 </feed>
 */
-bool WriteFeedXML(std::ostringstream& output)
+bool WriteFeedXML(const tasktracker::cFeedData& feed_data, std::ostringstream& output)
 {
   output.clear();
 
-  cXMLStringWriter writer;
+  util::cXMLStringWriter writer;
 
   // Create a new XML writer context
   if (!writer.Open()) {
@@ -273,7 +153,7 @@ bool WriteFeedXML(std::ostringstream& output)
   }
 
   // Write the title element
-  if (!writer.WriteElementWithContent("title", "Example Feed")) {
+  if (!writer.WriteElementWithContent("title", feed_data.properties.title)) {
     std::cerr<<"Failed to write child XML element"<<std::endl;
     return false;
   }
@@ -283,7 +163,7 @@ bool WriteFeedXML(std::ostringstream& output)
     std::cerr<<"Failed to begin link element"<<std::endl;
     return false;
   }
-  if (!writer.WriteElementAttribute("href", "http://example.org/")) {
+  if (!writer.WriteElementAttribute("href", feed_data.properties.link)) {
     std::cerr<<"Failed to add link href attribute"<<std::endl;
     return false;
   }
@@ -292,7 +172,7 @@ bool WriteFeedXML(std::ostringstream& output)
     return false;
   }
 
-  if (!writer.WriteElementWithContent("updated", "2003-12-13T18:30:02Z")) {
+  if (!writer.WriteElementWithContent("updated", util::GetDateTimeUTCISO8601(feed_data.properties.date_updated))) {
     std::cerr<<"Failed to write child XML element"<<std::endl;
     return false;
   }
@@ -303,7 +183,7 @@ bool WriteFeedXML(std::ostringstream& output)
     return false;
   }
 
-  if (!writer.WriteElementWithContent("name", "John Doe")) {
+  if (!writer.WriteElementWithContent("name", feed_data.properties.author_name)) {
     std::cerr<<"Failed to write name element"<<std::endl;
     return false;
   }
@@ -313,14 +193,15 @@ bool WriteFeedXML(std::ostringstream& output)
     return false;
   }
 
-  if (!writer.WriteElementWithContent("id", GenerateFeedID())) {
+  if (!writer.WriteElementWithContent("id", feed_data.properties.id)) {
     std::cerr<<"Failed to write id element"<<std::endl;
     return false;
   }
 
-  AddEntry(writer);
-  AddEntry(writer);
-
+  for (auto&& item : feed_data.entries) {
+    WriteFeedXMLEntry(writer, item);
+  }
+ 
   // End the feed element
   if (!writer.EndElement()) {
     std::cerr<<"Failed to end feed element"<<std::endl;

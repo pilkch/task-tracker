@@ -18,7 +18,7 @@
 
 namespace tasktracker {
 
-void CheckTasksAndUpdateFeedEntries(cTaskList& tasks, uint64_t previous_update)
+void CheckTasksAndUpdateFeedEntries(cTaskList& tasks, std::chrono::system_clock::time_point previous_update)
 {/*
   std::vector<cFeedEntry> entries_to_add;
   for (auto&& item : tasks.tasks) {
@@ -165,7 +165,8 @@ void cTaskTrackerThread::MainLoop()
   LoadStateFromFile("./state.json", feed_data);
 
   // TODO: Fix this
-  uint64_t previous_update = 0;
+  uint64_t uptime = 0;
+  std::chrono::system_clock::time_point previous_update { std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(std::chrono::milliseconds(uptime)) };
 
   poll_read p(file_watcher.GetInotifyFD());
 

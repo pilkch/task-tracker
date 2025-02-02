@@ -2,6 +2,7 @@
 #include <ctime>
 
 #include <chrono>
+#include <format>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -35,11 +36,20 @@ int msleep(long msec)
   return res;
 }
 
-uint64_t GetTimeMS()
+std::chrono::system_clock::time_point GetTime()
 {
-  const std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-  auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
-  return ms;
+  return std::chrono::system_clock::now();
+}
+
+// Get a UTC ISO8601 date time string
+// ie. "2012-03-02T04:07:34.0218628Z"
+std::string GetDateTimeUTCISO8601(std::chrono::system_clock::time_point time)
+{
+  const std::string raw = std::format("{:%FT%TZ}", time);
+
+  // HACK: The default formatting string returns something like "2012-03-02T04:07:34.0218628Z", but we only want 3 decimal places for the milliseconds,
+  // so we truncate them here and add the Z again, taking care to make sure we always truncate the Z on the end, even if there were only a few millisecond decimal places
+  return raw.substr(0, std::min<size_t>(std::max<size_t>(raw.length(), 1) - 1, 23)) + "Z";
 }
 
 std::string GetHomeFolder()

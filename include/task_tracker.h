@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <list>
 #include <string>
 #include <vector>
@@ -11,7 +12,7 @@ namespace tasktracker {
 class cTask {
 public:
   std::string description;
-  uint64_t date_due;
+  std::chrono::system_clock::time_point date_due;
 };
 
 class cTaskList {

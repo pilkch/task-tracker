@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(task-tracker)
 
 file(GLOB_RECURSE sources src/*.cpp)
-file(GLOB_RECURSE sources_test src/atom_feed.cpp src/debug_fake_feed_entries_update_thread.cpp src/feed_data.cpp src/ip_address.cpp src/settings.cpp src/task_tracker.cpp src/task_tracker_thread.cpp src/util.cpp src/web_server.cpp test/src/*.cpp)
+file(GLOB_RECURSE sources_test src/atom_feed.cpp src/debug_fake_feed_entries_update_thread.cpp src/feed_data.cpp src/ip_address.cpp src/random.cpp src/settings.cpp src/task_tracker.cpp src/task_tracker_thread.cpp src/util.cpp src/web_server.cpp src/xml_string_writer.cpp test/src/*.cpp)
 
 # Add the sources to the target
 add_executable(task-trackerd ${sources})

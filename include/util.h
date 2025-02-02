@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <chrono>
 #include <string_view>
 
 namespace util {
@@ -15,8 +16,12 @@ inline constexpr T clamp(const T& i, const T& lower, const T& upper)
 // msleep(): Sleep for the requested number of milliseconds
 int msleep(long msec);
 
-// Get the time since epoch in milliseconds
-uint64_t GetTimeMS();
+// Get the current time
+std::chrono::system_clock::time_point GetTime();
+
+// Get a UTC ISO8601 date time string
+// ie. "2012-03-02T04:07:34.0218628Z"
+std::string GetDateTimeUTCISO8601(std::chrono::system_clock::time_point time);
 
 std::string GetHomeFolder();
 std::string GetConfigFolder(std::string_view sApplicationNameLower);

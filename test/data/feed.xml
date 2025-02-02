@@ -2,23 +2,23 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Example Feed</title>
   <link href="http://example.org/"/>
-  <updated>2003-12-13T18:30:02Z</updated>
+  <updated>2025-02-02T11:37:55.130Z</updated>
   <author>
     <name>John Doe</name>
   </author>
-  <id>urn:uuid:6ae33f9a-b87d-c248-2b36-76931fac9dab</id>
+  <id>urn:uuid:a2b35022-744c-7ec3-6fc8-7b5360e281cd</id>
   <entry>
-    <title>Atom-Powered Robots Run Amok</title>
-    <link href="http://example.org/2003/12/13/atom03"/>
-    <id>urn:uuid:e2411dc7-b441-b2d6-89e4-62d7183a5d57</id>
-    <updated>2003-12-13T18:30:02Z</updated>
-    <summary>Some text.</summary>
+    <title>Item 1 Title</title>
+    <link href="http://example.org/2003/12/13/my-first-entry"/>
+    <id>urn:uuid:d0ff10ec-a864-ddda-e3f0-2294f4ccaec7</id>
+    <updated>2025-02-02T12:04:54.544Z</updated>
+    <summary>Item 1 summary</summary>
   </entry>
   <entry>
-    <title>Atom-Powered Robots Run Amok</title>
-    <link href="http://example.org/2003/12/13/atom03"/>
-    <id>urn:uuid:2fc4c8bc-c0bb-f8ca-acb6-09e111c7e1e7</id>
-    <updated>2003-12-13T18:30:02Z</updated>
-    <summary>Some text.</summary>
+    <title>Item 2 Title</title>
+    <link href="http://example.org/2003/12/14/my-second-entry"/>
+    <id>urn:uuid:8e1bdc5c-9bde-238e-2bb7-e18968be9867</id>
+    <updated>2025-02-02T11:24:49.349Z</updated>
+    <summary>Item 2 summary</summary>
   </entry>
 </feed>
