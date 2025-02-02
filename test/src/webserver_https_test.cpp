@@ -147,7 +147,7 @@ public:
 
 bool ParseHeaders(std::string_view text, cHTTPHeaders& headers)
 {
-  std::cout<<"ParseHeaders"<<std::endl;
+  //std::cout<<"ParseHeaders"<<std::endl;
 
   headers.Clear();
 
@@ -158,28 +158,28 @@ bool ParseHeaders(std::string_view text, cHTTPHeaders& headers)
   // Parse the HTTP header
   // Headers: HTTP/1.1 200 OK
   {
-    std::cout<<"a"<<std::endl;
+    //std::cout<<"a"<<std::endl;
     const size_t new_line = text.find("\r\n");
     if (new_line == std::string_view::npos) {
       return false;
     }
 
-    std::cout<<"b"<<std::endl;
+    //std::cout<<"b"<<std::endl;
     const size_t space1 = text.find(' ');
     if (space1 == std::string_view::npos) {
       return false;
     }
 
-    std::cout<<"c"<<std::endl;
+    //std::cout<<"c"<<std::endl;
     const size_t space2 = text.find(' ', space1 + 1);
     if (space2 == std::string_view::npos) {
       return false;
     }
 
-    std::cout<<"d space1: "<<space1<<", space2: "<<space2<<std::endl;
+    //std::cout<<"d space1: "<<space1<<", space2: "<<space2<<std::endl;
     // Parse the response code
     const std::string_view str_value(text.substr(space1, space2 - space1));
-    std::cout<<"Response code text: "<<str_value<<std::endl;
+    //std::cout<<"Response code text: "<<str_value<<std::endl;
     unsigned long int value = 0;
     if (!string_to_int(std::string(str_value), value)) {
       return false;
@@ -212,7 +212,7 @@ bool ParseHeaders(std::string_view text, cHTTPHeaders& headers)
 
     const std::string_view key{text.substr(0, colon)};
     const std::string_view str_value{text.substr(colon + 2, new_line - (colon + 2))};
-    std::cout<<"key: "<<key<<", str_value: "<<str_value<<std::endl;
+    //std::cout<<"key: "<<key<<", str_value: "<<str_value<<std::endl;
     if (key == "Content-Type") {
       headers.content_type = str_value;
     } else if (key == "Content-Length") {
@@ -238,7 +238,7 @@ bool ParseHeaders(std::string_view text, cHTTPHeaders& headers)
 
 bool GnuTLSPerformRequest(std::string_view request, uint16_t port, std::string_view user_agent, std::string_view server_certificate_path, cHTTPResponse& out_response)
 {
-  std::cout<<"GnuTLSPerformRequest Connecting to "<<util::ToString(host)<<":"<<port<<std::endl;
+  //std::cout<<"GnuTLSPerformRequest Connecting to "<<util::ToString(host)<<":"<<port<<std::endl;
 
   out_response.Clear();
 
@@ -274,19 +274,19 @@ bool GnuTLSPerformRequest(std::string_view request, uint16_t port, std::string_v
   session.set_transport_timeout_with_pull_timeout_function(500, GnuTLSPullTimeOutCallback);
 
   // Perform the TLS handshake
-  std::cout << "Performing handshake" << std::endl;
+  //std::cout<<"GnuTLSPerformRequestPerforming handshake" << std::endl;
   const int result = session.handshake();
   if (result < 0) {
-    std::cerr<<"Handshake failed, error "<<std::to_string(result)<<std::endl;
+    std::cerr<<"GnuTLSPerformRequest Handshake failed, error "<<std::to_string(result)<<std::endl;
     return false;
   }
 
-  std::cout << "Handshake completed" << std::endl;
+  //std::cout<<"GnuTLSPerformRequest Handshake completed" << std::endl;
 
-  std::cout << "Sending HTTP request" << std::endl;
+  //std::cout<<"GnuTLSPerformRequest Sending HTTP request" << std::endl;
   session.send(request.data(), request.length());
 
-  std::cout << "Reading response" << std::endl;
+  //std::cout<<"GnuTLSPerformRequest Reading response" << std::endl;
 
   // For debugging
   //std::ofstream ofs("output.html", std::ofstream::trunc);
@@ -338,10 +338,10 @@ bool GnuTLSPerformRequest(std::string_view request, uint16_t port, std::string_v
 
     const ssize_t result = session.recv(buffer, BUFFER_LENGTH);
     if (result == 0) {
-      std::cout<<"Peer has closed the TLS connection"<<std::endl;
+      //std::cout<<"GnuTLSPerformRequest Peer has closed the TLS connection"<<std::endl;
       break;
     } else if (result < 0) {
-      std::cout<<"Read error: "<<gnutls_strerror_name(result)<<" "<<gnutls_strerror(result)<<std::endl;
+      std::cout<<"GnuTLSPerformRequest Read error: "<<gnutls_strerror_name(result)<<" "<<gnutls_strerror(result)<<std::endl;
       break;
     }
 
@@ -376,7 +376,7 @@ bool GnuTLSPerformRequest(std::string_view request, uint16_t port, std::string_v
 
   session.bye(GNUTLS_SHUT_RDWR);
 
-  std::cout<<"Finished"<<std::endl;
+  //std::cout<<"Finished"<<std::endl;
 
   return true;
 }
@@ -388,7 +388,7 @@ std::string HTTPSCreateRequest(std::string_view url)
 
 bool PerformHTTPSGetRequest(std::span<const char> const url, uint16_t port, std::string_view server_certificate_path, cHTTPResponse& out_response)
 {
-  std::cout<<"PerformHTTPSGetRequest"<<std::endl;
+  //std::cout<<"PerformHTTPSGetRequest"<<std::endl;
 
   std::string user_agent("UnitTest");
   const std::string request = HTTPSCreateRequest(std::string_view{url.data(), url.size()});
@@ -399,7 +399,7 @@ bool PerformHTTPSGetRequest(std::span<const char> const url, uint16_t port, std:
   //std::cout<<"Headers: "<<out_response.headers.response_code<<", "<<out_response.headers.content_type<<", "<<out_response.headers.content_length<<std::endl;
   //std::cout<<"Content: "<<std::string(out_response.content.data(), out_response.content.size())<<std::endl;
 
-  std::cout<<"PerformGetRequest returning true"<<std::endl;
+  //std::cout<<"PerformHTTPSGetRequest returning true"<<std::endl;
   return true;
 }
 

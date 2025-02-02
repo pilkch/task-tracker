@@ -127,7 +127,7 @@ bool cStaticResourcesRequestHandler::LoadStaticResources()
 
 bool cStaticResourcesRequestHandler::HandleRequest(struct MHD_Connection* connection, std::string_view url)
 {
-  std::cout<<"cStaticResourcesRequestHandler::HandleRequest "<<url<<std::endl;
+  std::cout<<"cStaticResourcesRequestHandler::HandleRequest \""<<url<<"\""<<std::endl;
 
   // Handle static resources
   if (!url.empty() && (url[0] == '/')) {
