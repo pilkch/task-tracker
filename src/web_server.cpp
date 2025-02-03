@@ -22,6 +22,7 @@
 
 #include <security_headers.h>
 
+#include "atom_feed.h"
 #include "feed_data.h"
 #include "util.h"
 #include "web_server.h"
@@ -33,8 +34,8 @@ namespace {
 
 const std::string HTML_MIMETYPE = "text/html";
 const std::string CSS_MIMETYPE = "text/css";
-const std::string JAVASCRIPT_MIMETYPE = "text/javascript";
 const std::string SVG_XML_MIMETYPE = "image/svg+xml";
+const std::string ATOM_FEED_MIMETYPE = "application/rss+xml";
 
 }
 
@@ -74,6 +75,27 @@ enum MHD_Result Server404NotFoundResponse(struct MHD_Connection* connection)
   ServerAddSecurityHeaders(response);
   MHD_destroy_response(response);
   return ret;
+}
+
+bool ServerRegularResponse(struct MHD_Connection* connection, std::string_view content, std::string_view mime_type)
+{
+  struct MHD_Response* response = MHD_create_response_from_buffer_static(content.length(), content.data());
+  MHD_add_response_header(response, "Content-Type", mime_type.data());
+  ServerAddSecurityHeaders(response);
+  const int result = MHD_queue_response(connection, MHD_HTTP_OK, response);
+  MHD_destroy_response(response);
+  return (result == MHD_YES);
+}
+
+
+bool ServerRegularDynamicResponse(struct MHD_Connection* connection, std::string_view content, std::string_view mime_type)
+{
+  struct MHD_Response* response = MHD_create_response_from_buffer(content.length(), (void*)content.data(), MHD_RESPMEM_MUST_COPY);
+  MHD_add_response_header(response, "Content-Type", mime_type.data());
+  ServerAddSecurityHeaders(response);
+  const int result = MHD_queue_response(connection, MHD_HTTP_OK, response);
+  MHD_destroy_response(response);
+  return (result == MHD_YES);
 }
 
 }
@@ -127,21 +149,41 @@ bool cStaticResourcesRequestHandler::LoadStaticResources()
 
 bool cStaticResourcesRequestHandler::HandleRequest(struct MHD_Connection* connection, std::string_view url)
 {
-  std::cout<<"cStaticResourcesRequestHandler::HandleRequest \""<<url<<"\""<<std::endl;
-
   // Handle static resources
   if (!url.empty() && (url[0] == '/')) {
     for (auto&& resource : static_resources) {
       if (url == resource.request_path) {
         // This is the requested resource so create a response
-        struct MHD_Response* response = MHD_create_response_from_buffer_static(resource.response_text.length(), resource.response_text.c_str());
-        MHD_add_response_header(response, "Content-Type", resource.response_mime_type.c_str());
-        ServerAddSecurityHeaders(response);
-        const int result = MHD_queue_response(connection, MHD_HTTP_OK, response);
-        MHD_destroy_response(response);
-        return (result == MHD_YES);
+        std::cout<<"Serving: 200 \""<<url<<"\" static"<<std::endl;
+        return ServerRegularResponse(connection, resource.response_text, resource.response_mime_type);
       }
     }
+  }
+
+  return false;
+}
+
+
+class cDynamicResourcesRequestHandler {
+public:
+  bool HandleRequest(struct MHD_Connection* connection, std::string_view url);
+};
+
+bool cDynamicResourcesRequestHandler::HandleRequest(struct MHD_Connection* connection, std::string_view url)
+{
+  // Handle dynamic resources
+  if (url == "/feed/atom.xml") {
+    std::ostringstream output;
+    {
+      std::mutex mutex_feed_data;
+      feed::WriteFeedXML(feed_data, output);
+    }
+
+    const std::string content = output.str();
+
+    // This is the requested resource so create a response
+    std::cout<<"Serving: 200 \""<<url<<"\" dynamic"<<std::endl;
+    return ServerRegularDynamicResponse(connection, content, ATOM_FEED_MIMETYPE);
   }
 
   return false;
@@ -154,7 +196,7 @@ namespace tasktracker {
 
 class cWebServer {
 public:
-  cWebServer(cStaticResourcesRequestHandler& static_resources_request_handler);
+  cWebServer(cStaticResourcesRequestHandler& static_resources_request_handler, cDynamicResourcesRequestHandler& dynamic_resources_request_handler);
   ~cWebServer();
 
   bool Open(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert);
@@ -176,11 +218,13 @@ private:
   struct MHD_Daemon* daemon;
 
   cStaticResourcesRequestHandler& static_resources_request_handler;
+  cDynamicResourcesRequestHandler& dynamic_resources_request_handler;
 };
 
-cWebServer::cWebServer(cStaticResourcesRequestHandler& _static_resources_request_handler) :
+cWebServer::cWebServer(cStaticResourcesRequestHandler& _static_resources_request_handler, cDynamicResourcesRequestHandler& _dynamic_resources_request_handler) :
   daemon(nullptr),
-  static_resources_request_handler(_static_resources_request_handler)
+  static_resources_request_handler(_static_resources_request_handler),
+  dynamic_resources_request_handler(_dynamic_resources_request_handler)
 {
 }
 
@@ -315,15 +359,20 @@ enum MHD_Result cWebServer::_OnRequest(
     return MHD_YES;
   }
 
-  // Unknown resource
-  const enum MHD_Result result = Server404NotFoundResponse(connection);
+  // Handle dynamic resources
+  if (pThis->dynamic_resources_request_handler.HandleRequest(connection, url)) {
+    return MHD_YES;
+  }
 
-  return result;
+  // Unknown resource
+  std::cout<<"Serving: 404 \""<<url<<"\""<<std::endl;
+  return Server404NotFoundResponse(connection);
 }
 
 
 cWebServerManager::cWebServerManager() :
   static_resources_request_handler(nullptr),
+  dynamic_resources_request_handler(nullptr),
   webserver(nullptr)
 {
 }
@@ -339,12 +388,18 @@ cWebServerManager::~cWebServerManager()
     delete static_resources_request_handler;
     static_resources_request_handler = nullptr;
   }
+
+  if (dynamic_resources_request_handler != nullptr) {
+    delete dynamic_resources_request_handler;
+    dynamic_resources_request_handler = nullptr;
+  }
 }
 
 bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert)
 {
   if (
     (static_resources_request_handler != nullptr) ||
+    (dynamic_resources_request_handler != nullptr) ||
     (webserver != nullptr)
   ) {
     std::cerr<<"Error already created"<<std::endl;
@@ -358,7 +413,9 @@ bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, cons
     return false;
   }
 
-  webserver = new cWebServer(*static_resources_request_handler);
+  dynamic_resources_request_handler = new cDynamicResourcesRequestHandler;
+
+  webserver = new cWebServer(*static_resources_request_handler, *dynamic_resources_request_handler);
   if (!webserver->Open(host, port, private_key, public_cert)) {
     std::cerr<<"Error opening web server"<<std::endl;
     return false;
