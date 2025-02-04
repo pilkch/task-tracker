@@ -17,15 +17,17 @@ public:
   void Clear();
 
   constexpr bool GetRunningInContainer() const { return running_in_container; }
-  constexpr const util::cIPAddress& GetHTTPSHost() const { return https_host; }
-  constexpr uint16_t GetHTTPSPort() const { return https_port; }
+  constexpr const util::cIPAddress& GetIP() const { return ip; }
+  constexpr uint16_t GetPort() const { return port; }
+  constexpr const std::string& GetExternalURL() const { return external_url; }
   constexpr const std::string& GetHTTPSPrivateKey() const { return https_private_key; }
   constexpr const std::string& GetHTTPSPublicCert() const { return https_public_cert; }
 
 private:
   bool running_in_container;
-  util::cIPAddress https_host;
-  uint16_t https_port;
+  util::cIPAddress ip;
+  uint16_t port;
+  std::string external_url;
   std::string https_private_key;
   std::string https_public_cert;
 };

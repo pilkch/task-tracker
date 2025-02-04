@@ -99,7 +99,7 @@ namespace tasktracker {
 
 cSettings::cSettings() :
   running_in_container(false),
-  https_port(0)
+  port(0)
 {
 }
 
@@ -141,21 +141,26 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
     // Parse https address
     {
       std::string value;
-      if (!JSONParseString(settings_val, "https_host", value)) {
+      if (!JSONParseString(settings_val, "ip", value)) {
         return false;
       }
 
-      util::ParseAddress(value, https_host);
+      util::ParseAddress(value, ip);
     }
 
     // Parse https port
     {
       uint16_t value = 0;
-      if (!JSONParseUint16(settings_val, "https_port", value)) {
+      if (!JSONParseUint16(settings_val, "port", value)) {
         return false;
       }
 
-      https_port = value;
+      port = value;
+    }
+
+    // Parse external URL
+    if (!JSONParseString(settings_val, "external_url", external_url)) {
+      return false;
     }
 
     // Parse https private key and certificate
@@ -174,7 +179,8 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
 constexpr bool cSettings::IsValid() const
 {
   return (
-    (https_host.IsValid() || (util::ToString(https_host) == "0.0.0.0")) && (https_port != 0) &&
+    (ip.IsValid() || (util::ToString(ip) == "0.0.0.0")) && (port != 0) &&
+    !external_url.empty() &&
     !https_private_key.empty() && !https_public_cert.empty()
   );
 }
@@ -182,8 +188,9 @@ constexpr bool cSettings::IsValid() const
 void cSettings::Clear()
 {
   running_in_container = false;
-  https_host.Clear();
-  https_port = 0;
+  ip.Clear();
+  port = 0;
+  external_url.clear();
   https_private_key.clear();
   https_public_cert.clear();
 }

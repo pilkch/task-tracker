@@ -5,8 +5,8 @@
 #include <thread>
 
 #include "atom_feed.h"
-#include "feed_data.h"
 #include "debug_fake_feed_entries_update_thread.h"
+#include "feed_data.h"
 #include "util.h"
 
 namespace tasktracker {
@@ -19,6 +19,8 @@ public:
 void cDebugFakeFeedEntriesUpdateThread::MainLoop()
 {
   std::cout<<"cDebugFakeFeedEntriesUpdateThread::MainLoop"<<std::endl;
+
+  util::cPseudoRandomNumberGenerator rng;
 
   const std::vector<std::string> fake_entries = {
     "First entry",
@@ -33,8 +35,6 @@ void cDebugFakeFeedEntriesUpdateThread::MainLoop()
     "Tenth entry"
   };
   const size_t n = 10;
-
-  util::cPseudoRandomNumberGenerator rng;
 
   for (size_t i = 0; i < n; i++) {
     // Wait 5 seconds between adding each entry

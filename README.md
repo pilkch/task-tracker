@@ -52,7 +52,7 @@ openssl rsa -in server.key -out server.key
 openssl req -sha256 -new -key server.key -out server.csr -subj '/CN=localhost'
 openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out server.crt
 ```
-2. Set up a configuration.json file by copying the example and editing it (Set your source and destination addresses and ports, use "0.0.0.0" for the "https_host" field if you are running task-trackerd in a container because it doesn't know about the external network interfaces, optionally set the the server.key and server.crt):
+2. Set up a configuration.json file by copying the example and editing it (Set your source and destination addresses and ports, use "0.0.0.0" for the "ip" field if you are running task-trackerd in a container because it doesn't know about the external network interfaces, optionally set the the server.key and server.crt):
 ```bash
 cp configuration.json.example configuration.json
 vi configuration.json

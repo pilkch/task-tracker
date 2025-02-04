@@ -1,7 +1,11 @@
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <string>
 
+#include "atom_feed.h"
+#include "feed_data.h"
+#include "random.h"
 #include "task_tracker.h"
 #include "util.h"
 #include "web_server.h"
@@ -17,6 +21,21 @@
 
 namespace tasktracker {
 
+void SetFeedProperties(const std::string& external_url)
+{
+  util::cPseudoRandomNumberGenerator rng;
+
+  // Set the feed properties
+  {
+    std::lock_guard<std::mutex> lock(mutex_feed_data);
+    feed_data.properties.title = "My Feed";
+    feed_data.properties.link = external_url + "feed/atom.xml";
+    feed_data.properties.date_updated = util::GetTime();
+    feed_data.properties.author_name = "My Name";
+    feed_data.properties.id = feed::GenerateFeedID(rng);
+  }
+}
+
 bool LoadTasksFromFile(const std::string& file_path, cTaskList& tasks)
 {
   return true;
@@ -25,6 +44,9 @@ bool LoadTasksFromFile(const std::string& file_path, cTaskList& tasks)
 bool RunServer(const cSettings& settings)
 {
   std::cout<<"Running server"<<std::endl;
+
+  // Initialise the feed
+  SetFeedProperties(settings.GetExternalURL());
 
 #ifndef DEBUG_FAKE_FEED_ENTIES
   // Start the task tracker thread
@@ -42,7 +64,7 @@ bool RunServer(const cSettings& settings)
 
   // Now run the web server
   cWebServerManager web_server_manager;
-  if (!web_server_manager.Create(settings.GetHTTPSHost(), settings.GetHTTPSPort(), settings.GetHTTPSPrivateKey(), settings.GetHTTPSPublicCert())) {
+  if (!web_server_manager.Create(settings.GetIP(), settings.GetPort(), settings.GetHTTPSPrivateKey(), settings.GetHTTPSPublicCert())) {
     std::cerr<<"Error creating web server"<<std::endl;
     return false;
   }

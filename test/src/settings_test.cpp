@@ -9,13 +9,15 @@ TEST(TaskTracker, TestSettings)
   tasktracker::cSettings settings;
   ASSERT_TRUE(settings.LoadFromFile("test/data/configuration.json"));
 
-  const util::cIPAddress https_host = settings.GetHTTPSHost();
-  EXPECT_EQ(192, https_host.octet0);
-  EXPECT_EQ(168, https_host.octet1);
-  EXPECT_EQ(0, https_host.octet2);
-  EXPECT_EQ(3, https_host.octet3);
+  const util::cIPAddress ip = settings.GetIP();
+  EXPECT_EQ(192, ip.octet0);
+  EXPECT_EQ(168, ip.octet1);
+  EXPECT_EQ(0, ip.octet2);
+  EXPECT_EQ(3, ip.octet3);
 
-  EXPECT_EQ(8443, settings.GetHTTPSPort());
+  EXPECT_EQ(8443, settings.GetPort());
+
+  EXPECT_EQ("https://tasktracker.mydomain.home:8443/", settings.GetExternalURL());
 
   const std::string https_private_key = settings.GetHTTPSPrivateKey();
   EXPECT_STREQ("./server.key", https_private_key.c_str());
