@@ -1,3 +1,4 @@
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdint>
@@ -51,6 +52,7 @@ public:
 };
 
 
+const std::string UNAUTHORISED = "401 Unauthorized";
 const std::string PAGE_NOT_FOUND = "404 Not Found";
 
 
@@ -66,6 +68,17 @@ void ServerAddSecurityHeaders(struct MHD_Response* response)
   }
 }
 
+bool Server401Unauthorised(struct MHD_Connection* connection)
+{
+  struct MHD_Response* response = MHD_create_response_from_buffer_static(UNAUTHORISED.length(), UNAUTHORISED.c_str());
+  const enum MHD_Result ret = MHD_queue_response(connection, MHD_HTTP_UNAUTHORIZED, response);
+  const char* mime = nullptr;
+  MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_ENCODING, mime);
+  ServerAddSecurityHeaders(response);
+  MHD_destroy_response(response);
+  return (ret == MHD_YES);;
+}
+
 enum MHD_Result Server404NotFoundResponse(struct MHD_Connection* connection)
 {
   struct MHD_Response* response = MHD_create_response_from_buffer_static(PAGE_NOT_FOUND.length(), PAGE_NOT_FOUND.c_str());
@@ -79,6 +92,7 @@ enum MHD_Result Server404NotFoundResponse(struct MHD_Connection* connection)
 
 bool ServerRegularResponse(struct MHD_Connection* connection, std::string_view content, std::string_view mime_type)
 {
+  // NOTE: content needs to be long lived, static, libmicrohttpd keeps a reference to it
   struct MHD_Response* response = MHD_create_response_from_buffer_static(content.length(), content.data());
   MHD_add_response_header(response, "Content-Type", mime_type.data());
   ServerAddSecurityHeaders(response);
@@ -87,9 +101,9 @@ bool ServerRegularResponse(struct MHD_Connection* connection, std::string_view c
   return (result == MHD_YES);
 }
 
-
 bool ServerRegularDynamicResponse(struct MHD_Connection* connection, std::string_view content, std::string_view mime_type)
 {
+  // NOTE: We have to use MHD_RESPMEM_MUST_COPY so that libmicrohttpd makes a copy of the content
   struct MHD_Response* response = MHD_create_response_from_buffer(content.length(), (void*)content.data(), MHD_RESPMEM_MUST_COPY);
   MHD_add_response_header(response, "Content-Type", mime_type.data());
   ServerAddSecurityHeaders(response);
@@ -166,24 +180,52 @@ bool cStaticResourcesRequestHandler::HandleRequest(struct MHD_Connection* connec
 
 class cDynamicResourcesRequestHandler {
 public:
+  explicit cDynamicResourcesRequestHandler(const std::string& token);
+
   bool HandleRequest(struct MHD_Connection* connection, std::string_view url);
+
+private:
+  bool IsTokenMatch(const char* user_token) const;
+
+  std::string expected_token;
 };
+
+cDynamicResourcesRequestHandler::cDynamicResourcesRequestHandler(const std::string& token) :
+  expected_token(token)
+{
+}
+
+bool cDynamicResourcesRequestHandler::IsTokenMatch(const char* user_token) const
+{
+  if (user_token == nullptr) return false;
+
+  const std::string user_token_str(user_token);
+
+  return (user_token_str == expected_token);
+}
 
 bool cDynamicResourcesRequestHandler::HandleRequest(struct MHD_Connection* connection, std::string_view url)
 {
   // Handle dynamic resources
   if (url == "/feed/atom.xml") {
-    std::ostringstream output;
-    {
-      std::mutex mutex_feed_data;
-      feed::WriteFeedXML(feed_data, output);
+    const char* user_token = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "token");
+    if (!IsTokenMatch(user_token)) {
+      std::cout<<"Serving: 401 \""<<url<<"\" dynamic"<<std::endl;
+      return Server401Unauthorised(connection);
+    } else {
+      // The user has supplied the expected token, show the feed
+      std::ostringstream output;
+      {
+        std::mutex mutex_feed_data;
+        feed::WriteFeedXML(feed_data, output);
+      }
+
+      const std::string content = output.str();
+
+      // This is the requested resource so create a response
+      std::cout<<"Serving: 200 \""<<url<<"\" dynamic"<<std::endl;
+      return ServerRegularDynamicResponse(connection, content, ATOM_FEED_MIMETYPE);
     }
-
-    const std::string content = output.str();
-
-    // This is the requested resource so create a response
-    std::cout<<"Serving: 200 \""<<url<<"\" dynamic"<<std::endl;
-    return ServerRegularDynamicResponse(connection, content, ATOM_FEED_MIMETYPE);
   }
 
   return false;
@@ -395,7 +437,7 @@ cWebServerManager::~cWebServerManager()
   }
 }
 
-bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert)
+bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert, const std::string& token)
 {
   if (
     (static_resources_request_handler != nullptr) ||
@@ -413,7 +455,7 @@ bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, cons
     return false;
   }
 
-  dynamic_resources_request_handler = new cDynamicResourcesRequestHandler;
+  dynamic_resources_request_handler = new cDynamicResourcesRequestHandler(token);
 
   webserver = new cWebServer(*static_resources_request_handler, *dynamic_resources_request_handler);
   if (!webserver->Open(host, port, private_key, public_cert)) {

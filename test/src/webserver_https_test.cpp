@@ -91,7 +91,7 @@ protected:
 void WebServerTest::SetUp()
 {
   // Create the web server
-  if (!web_server_manager.Create(host, port, "./server.key", "./server.crt")) {
+  if (!web_server_manager.Create(host, port, "./server.key", "./server.crt", "PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB")) {
     std::cerr<<"Error creating web server"<<std::endl;
   }
 }

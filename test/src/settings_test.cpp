@@ -7,7 +7,7 @@
 TEST(TaskTracker, TestSettings)
 {
   tasktracker::cSettings settings;
-  ASSERT_TRUE(settings.LoadFromFile("test/data/configuration.json"));
+  EXPECT_TRUE(settings.LoadFromFile("test/data/configuration.json"));
 
   const util::cIPAddress ip = settings.GetIP();
   EXPECT_EQ(192, ip.octet0);
@@ -24,4 +24,6 @@ TEST(TaskTracker, TestSettings)
 
   const std::string https_public_cert = settings.GetHTTPSPublicCert();
   EXPECT_STREQ("./server.crt", https_public_cert.c_str());
+
+  EXPECT_EQ("PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB", settings.GetToken());
 }

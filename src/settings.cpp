@@ -171,6 +171,11 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
     if (!JSONParseString(settings_val, "https_public_cert", https_public_cert)) {
       return false;
     }
+
+    // Parse token
+    if (!JSONParseString(settings_val, "token", token)) {
+      return false;
+    }
   }
 
   return IsValid();
@@ -181,7 +186,8 @@ constexpr bool cSettings::IsValid() const
   return (
     (ip.IsValid() || (util::ToString(ip) == "0.0.0.0")) && (port != 0) &&
     !external_url.empty() &&
-    !https_private_key.empty() && !https_public_cert.empty()
+    !https_private_key.empty() && !https_public_cert.empty() &&
+    !token.empty()
   );
 }
 
@@ -193,6 +199,7 @@ void cSettings::Clear()
   external_url.clear();
   https_private_key.clear();
   https_public_cert.clear();
+  token.clear();
 }
 
 }

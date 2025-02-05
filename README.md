@@ -52,12 +52,19 @@ openssl rsa -in server.key -out server.key
 openssl req -sha256 -new -key server.key -out server.csr -subj '/CN=localhost'
 openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out server.crt
 ```
-2. Set up a configuration.json file by copying the example and editing it (Set your source and destination addresses and ports, use "0.0.0.0" for the "ip" field if you are running task-trackerd in a container because it doesn't know about the external network interfaces, optionally set the the server.key and server.crt):
+2. Set up a configuration.json file by copying the example configuration:
 ```bash
 cp configuration.json.example configuration.json
+```
+3. Generate a random token (This method is slightly limited, but we can make it 64 characters which is pretty long, task-tracker doesn't care if it is longer or shorter, only that it is alphanumeric):
+```bash
+openssl rand -hex 64
+```
+4. Editing the configuration (Set your IP address and port, use "0.0.0.0" for the "ip" field if you are running task-trackerd in a container because it doesn't know about the external network interfaces, set the token, and optionally set the the server.key and server.crt):
+```bash
 vi configuration.json
 ```
-3. Open ports in firewalld (Replace 9997 and 7080 with your ports):
+5. Open ports in firewalld (Replace 8443 with your port):
 ```bash
 sudo firewall-cmd --permanent --add-port=8443/tcp
 sudo firewall-cmd --reload
@@ -88,7 +95,7 @@ podman run -v tasks:/root/task-tracker/tasks/:z -p 192.168.0.3:8443:8443 --shm-s
 ### Use the feed
 
 1. Go to the address in a browser to check that is working (Replace the address and port):  
-`https://192.168.0.3:8443/feed/atom.xml`
+`https://192.168.0.3:8443/feed/atom.xml?token=<your token here>`
 2. Add this URL to your RSS feed reader.
 
 ## Fuzzing

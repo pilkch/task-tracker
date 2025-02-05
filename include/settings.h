@@ -22,6 +22,7 @@ public:
   constexpr const std::string& GetExternalURL() const { return external_url; }
   constexpr const std::string& GetHTTPSPrivateKey() const { return https_private_key; }
   constexpr const std::string& GetHTTPSPublicCert() const { return https_public_cert; }
+  constexpr const std::string& GetToken() const { return token; }
 
 private:
   bool running_in_container;
@@ -30,6 +31,7 @@ private:
   std::string external_url;
   std::string https_private_key;
   std::string https_public_cert;
+  std::string token;
 };
 
 }
