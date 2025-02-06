@@ -89,13 +89,16 @@ podman build --tag fedora:tasktracker -f ./Dockerfile
 ```
 3. Run the container (Replace the IP and port with your own):
 ```bash
-podman run -v tasks:/root/task-tracker/tasks/:z -p 192.168.0.3:8443:8443 --shm-size 256m --name tasktracker --rm fedora:tasktracker
+mkdir -p tasks
+podman run --init -v tasks:/root/task-tracker/tasks/:z -p 192.168.0.3:8443:8443 --shm-size 256m --name tasktracker --rm fedora:tasktracker
 ```
 
 ### Use the feed
 
 1. Go to the address in a browser to check that is working (Replace the address and port):  
-`https://192.168.0.3:8443/feed/atom.xml?token=<your token here>`
+```bash
+wget --no-check-certificate https://192.160.0.3:8443/feed/atom.xml?token=<your token here>
+```
 2. Add this URL to your RSS feed reader.
 
 ## Fuzzing

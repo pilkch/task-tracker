@@ -5,6 +5,7 @@ RUN dnf -y update
 RUN dnf -y install libmicrohttpd
 
 COPY configuration.json server.crt server.key task-trackerd /root/task-tracker/
+COPY resources/ /root/task-tracker/resources/
 
 EXPOSE 8443/tcp
 
