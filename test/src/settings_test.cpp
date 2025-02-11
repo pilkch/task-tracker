@@ -9,6 +9,8 @@ TEST(TaskTracker, TestSettings)
   tasktracker::cSettings settings;
   EXPECT_TRUE(settings.LoadFromFile("test/data/configuration.json"));
 
+  EXPECT_TRUE(settings.GetRunningInContainer());
+
   const util::cIPAddress ip = settings.GetIP();
   EXPECT_EQ(192, ip.octet0);
   EXPECT_EQ(168, ip.octet1);
@@ -18,12 +20,11 @@ TEST(TaskTracker, TestSettings)
   EXPECT_EQ(8443, settings.GetPort());
 
   EXPECT_EQ("https://tasktracker.mydomain.home:8443/", settings.GetExternalURL());
+  EXPECT_STREQ("./server.key", settings.GetHTTPSPrivateKey().c_str());
+  EXPECT_STREQ("./server.crt", settings.GetHTTPSPublicCert().c_str());
+  EXPECT_EQ("u5ekFC43AFJMl1uidPJYM9P0D8uibgnvZxbk0QsAlPgoeSDxivonEL1NZ3DXQzzB", settings.GetToken());
 
-  const std::string https_private_key = settings.GetHTTPSPrivateKey();
-  EXPECT_STREQ("./server.key", https_private_key.c_str());
-
-  const std::string https_public_cert = settings.GetHTTPSPublicCert();
-  EXPECT_STREQ("./server.crt", https_public_cert.c_str());
-
-  EXPECT_EQ("PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB", settings.GetToken());
+  EXPECT_STREQ("https://gitlab.mydomain.home:2443/", settings.GetGitlabURL().c_str());
+  EXPECT_STREQ("glfgi-ijcxzvZXCJIO58FD348s", settings.GetGitlabAPIToken().c_str());
+  EXPECT_STREQ("./gitlab_server.crt", settings.GetGitlabHTTPSPublicCert().c_str());
 }

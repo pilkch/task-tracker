@@ -4,7 +4,8 @@ Tool to keep track of tasks that need to be done by a certain date, for example 
 The task tracker serves an RSS feed, it will add entries to the feed as the expiry date approaches and when a task expires.
 
 ## Third Party Libraries and Resources
-
+  
+- [libcurl](https://curl.se/libcurl/)  
 - [libjson-c](https://github.com/json-c/json-c)  
 - [libmicrohttpd](https://www.gnu.org/software/libmicrohttpd/)  
 - [libxml2](https://github.com/GNOME/libxml2)
@@ -15,12 +16,12 @@ Install dependencies:
 
 Ubuntu:
 ```bash
-sudo apt install automake autoconf libtool texinfo gcc-c++ cmake json-c-dev libxml2-dev gtest-dev
+sudo apt install automake autoconf libtool texinfo gcc-c++ cmake libcurl-dev json-c-dev libxml2-dev gtest-dev
 ```
 
 Fedora:
 ```bash
-sudo dnf install automake autoconf libtool texinfo gcc-c++ cmake json-c-devel libxml2-devel gtest-devel
+sudo dnf install automake autoconf libtool texinfo gcc-c++ cmake libcurl-devel json-c-devel libxml2-devel gtest-devel
 ```
 
 Clone:
@@ -60,7 +61,7 @@ cp configuration.json.example configuration.json
 ```bash
 openssl rand -hex 64
 ```
-4. Editing the configuration (Set your IP address and port, use "0.0.0.0" for the "ip" field if you are running task-trackerd in a container because it doesn't know about the external network interfaces, set the token, and optionally set the the server.key and server.crt):
+4. Editing the configuration (Set your IP address and port, use "0.0.0.0" for the "ip" field if you are running task-trackerd in a container because it doesn't know about the external network interfaces, set the token, and optionally set the the server.key and server.crt, and gitlab url, certificate and token settings):
 ```bash
 vi configuration.json
 ```
@@ -129,3 +130,8 @@ Merge items from corpus 2, 3, ... into corpus 1
 rm -f ./MergeStatusControlFile
 ./fuzz_web_server_https_url corpus/fuzz_web_server_https_url/ corpus/new_items/ -merge=1 -merge_control_file=MergeStatusControlFile
 ```
+
+## History
+
+The idea for this application was originally to use a JSON file or sqlite database to specify the tasks with due dates for things like general tasks, car maintenance, TLS certificates expiry, API key expiry, domain renewal.  
+Talking to my friend Paul about it, we realised everything I wanted was in gitlab issues, some of the issues already have due dates and I can just query them with the API.

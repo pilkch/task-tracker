@@ -2,7 +2,13 @@
 
 #include <json-c/json.h>
 
-namespace util {
+namespace json {
+
+// Helpers
+bool JSONParseString(struct json_object* json, const std::string& name, std::string& out_value);
+bool JSONParseBool(struct json_object* json, const std::string& name, bool& out_value);
+bool JSONParseUint16(struct json_object* json, const std::string& name, uint16_t& out_value);
+
 
 class cJSONDocument {
 public:

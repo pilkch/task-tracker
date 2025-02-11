@@ -4,6 +4,7 @@
 #include <string>
 
 #include "atom_feed.h"
+#include "curl_helper.h"
 #include "feed_data.h"
 #include "random.h"
 #include "task_tracker.h"
@@ -49,6 +50,9 @@ bool RunServer(const cSettings& settings)
   SetFeedProperties(settings.GetExternalURL());
 
 #ifndef DEBUG_FAKE_FEED_ENTIES
+  // Curl is used for querying gitlab issues
+  curl::cCurlHelper helper;
+
   // Start the task tracker thread
   if (!StartTaskTrackerThread(settings)) {
     std::cerr<<"Error starting task tracker"<<std::endl;
