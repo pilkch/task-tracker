@@ -24,7 +24,7 @@ public:
   bool WriteElementAttribute(const std::string& name, const std::string& value);
   bool WriteElementWithContent(const std::string& name, const std::string& content);
 
-  const char* GetOutput() const { return (((buf != nullptr) && (buf->content != nullptr)) ? (const char*)(buf->content) : ""); }
+  constexpr const char* GetOutput() const { return (((buf != nullptr) && (buf->content != nullptr)) ? (const char*)(buf->content) : ""); }
 
 private:
   xmlTextWriterPtr writer;
