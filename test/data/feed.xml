@@ -8,17 +8,17 @@
   </author>
   <id>urn:uuid:a2b35022-744c-7ec3-6fc8-7b5360e281cd</id>
   <entry>
-    <title>Item 1 Title</title>
-    <link href="http://example.org/2003/12/13/my-first-entry"/>
-    <id>urn:uuid:d0ff10ec-a864-ddda-e3f0-2294f4ccaec7</id>
-    <updated>2025-02-02T12:04:54.544Z</updated>
-    <summary>Item 1 summary</summary>
-  </entry>
-  <entry>
     <title>Item 2 Title</title>
     <link href="http://example.org/2003/12/14/my-second-entry"/>
     <id>urn:uuid:8e1bdc5c-9bde-238e-2bb7-e18968be9867</id>
     <updated>2025-02-02T11:24:49.349Z</updated>
     <summary>Item 2 summary</summary>
+  </entry>
+  <entry>
+    <title>Item 1 Title</title>
+    <link href="http://example.org/2003/12/13/my-first-entry"/>
+    <id>urn:uuid:d0ff10ec-a864-ddda-e3f0-2294f4ccaec7</id>
+    <updated>2025-02-02T12:04:54.544Z</updated>
+    <summary>Item 1 summary</summary>
   </entry>
 </feed>

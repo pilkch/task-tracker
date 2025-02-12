@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include "atom_feed.h"
 #include "https_socket.h"
 #include "json.h"
 #include "feed_data.h"
@@ -29,6 +30,7 @@ private:
   void CheckTasksAndUpdateFeedEntries(cTaskList& tasks, std::chrono::system_clock::time_point previous_update);
 
   const cSettings& settings;
+  util::cPseudoRandomNumberGenerator rng;
 };
 
 cTaskTrackerThread::cTaskTrackerThread(const cSettings& _settings) :
@@ -43,21 +45,22 @@ void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& tasks, std::c
   std::vector<gitlab::cIssue> out_gitlab_issues;
   gitlab::QueryGitlabAPI(settings, out_gitlab_issues);
 
-  /*
   std::vector<cFeedEntry> entries_to_add;
-  for (auto&& item : tasks.tasks) {
+  for (auto&& item : out_gitlab_issues) {
     // Check the date on each 
     if (date) {
-      entries_to_add
+      cFeedEntry entry;
+      entry.title = item.title;
+      entry.summary = "This is a summary";
+      entry.date_updated = util::GetTime();
+      entry.id = feed::GenerateFeedID(rng);
+      entries_to_add.push_back(entry);
     }
-}
+  }
 
   // Update the feed entries
   std::lock_guard<std::mutex> lock(mutex_feed_data);
-  for (auto&& item : entries_to_add) {
-    // Add the entries
-
-  }*/
+  feed_data.entries.push_back(std::span<cFeedEntry>(entries_to_add));
 }
 
 void cTaskTrackerThread::MainLoop()
