@@ -58,9 +58,13 @@ void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& tasks, std::c
     }
   }
 
-  // Update the feed entries
-  std::lock_guard<std::mutex> lock(mutex_feed_data);
-  feed_data.entries.push_back(std::span<cFeedEntry>(entries_to_add));
+  {
+    // Update the feed entries
+    std::lock_guard<std::mutex> lock(mutex_feed_data);
+    feed_data.entries.push_back(std::span<cFeedEntry>(entries_to_add));
+  }
+
+  SaveFeedDataToFile("feed.json");
 }
 
 void cTaskTrackerThread::MainLoop()
@@ -69,8 +73,6 @@ void cTaskTrackerThread::MainLoop()
 
   cTaskList tasks;
   LoadTasksFromFile("./tasks.json", tasks);
-
-  LoadStateFromFile("./state.json", feed_data);
 
   // TODO: Fix this
   uint64_t uptime = 0;

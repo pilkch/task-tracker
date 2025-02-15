@@ -24,6 +24,8 @@ public:
   T& operator[](size_t i);
   constexpr const T& operator[](size_t i) const;
 
+  void clear();
+
 private:
   std::array<T, N> elements;
   size_t first;
@@ -82,6 +84,14 @@ template <class T, size_t N>
 T& ring_buffer<T, N>::operator[](size_t i)
 {
   return elements[(first + i) % N];
+}
+
+template <class T, size_t N>
+void ring_buffer<T, N>::clear()
+{
+  // NOTE: We don't actually delete any data, we just reset our position and number of elements
+  first = 0;
+  n = 0;
 }
 
 }

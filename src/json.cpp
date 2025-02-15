@@ -81,4 +81,26 @@ bool JSONParseUint16(struct json_object* json, const std::string& name, uint16_t
   return true;
 }
 
+bool JSONParseUint64(struct json_object* json, const std::string& name, uint64_t& out_value)
+{
+  out_value = 0;
+
+  struct json_object* obj = json_object_object_get(json, name.c_str());
+  if (obj == nullptr) {
+    std::cerr<<name<<" not found"<<std::endl;
+    return false;
+  }
+
+  enum json_type type = json_object_get_type(obj);
+  if (type != json_type_int) {
+    std::cerr<<name<<" is not an int"<<std::endl;
+    return false;
+  }
+
+  const int64_t value = json_object_get_int64(obj);
+
+  out_value = value;
+  return true;
+}
+
 }

@@ -8,6 +8,7 @@ namespace json {
 bool JSONParseString(struct json_object* json, const std::string& name, std::string& out_value);
 bool JSONParseBool(struct json_object* json, const std::string& name, bool& out_value);
 bool JSONParseUint16(struct json_object* json, const std::string& name, uint16_t& out_value);
+bool JSONParseUint64(struct json_object* json, const std::string& name, uint64_t& out_value);
 
 
 class cJSONDocument {

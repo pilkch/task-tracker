@@ -2,6 +2,7 @@
 #include <ctime>
 
 #include <chrono>
+#include <filesystem>
 #include <format>
 #include <iomanip>
 #include <iostream>
@@ -16,7 +17,7 @@
 namespace util {
 
 // From: https://stackoverflow.com/a/1157217/1074390
-int msleep(long msec)
+int msleep(long msec) noexcept
 {
   struct timespec ts;
   int res;
@@ -36,14 +37,14 @@ int msleep(long msec)
   return res;
 }
 
-std::chrono::system_clock::time_point GetTime()
+std::chrono::system_clock::time_point GetTime() noexcept
 {
   return std::chrono::system_clock::now();
 }
 
 // Get a UTC ISO8601 date time string
 // ie. "2012-03-02T04:07:34.0218628Z"
-std::string GetDateTimeUTCISO8601(std::chrono::system_clock::time_point time)
+std::string GetDateTimeUTCISO8601(std::chrono::system_clock::time_point time) noexcept
 {
   const std::string raw = std::format("{:%FT%TZ}", time);
 
@@ -52,7 +53,7 @@ std::string GetDateTimeUTCISO8601(std::chrono::system_clock::time_point time)
   return raw.substr(0, std::min<size_t>(std::max<size_t>(raw.length(), 1) - 1, 23)) + "Z";
 }
 
-std::string GetHomeFolder()
+std::string GetHomeFolder() noexcept
 {
   const char* szHomeFolder = getenv("HOME");
   if (szHomeFolder != nullptr) return szHomeFolder;
@@ -63,7 +64,7 @@ std::string GetHomeFolder()
   return "";
 }
 
-std::string GetConfigFolder(std::string_view sApplicationNameLower)
+std::string GetConfigFolder(std::string_view sApplicationNameLower) noexcept
 {
   const std::string sHomeFolder = GetHomeFolder();
   if (sHomeFolder.empty()) return "";
@@ -71,18 +72,18 @@ std::string GetConfigFolder(std::string_view sApplicationNameLower)
   return sHomeFolder + "/.config/" + std::string(sApplicationNameLower);
 }
 
-bool TestFileExists(const std::string& sFilePath)
+bool TestFileExists(const std::string& sFilePath) noexcept
 {
   struct stat s;
   return (stat(sFilePath.c_str(), &s) >= 0);
 }
 
-bool TestFolderExists(const std::string& sFolderPath)
+bool TestFolderExists(const std::string& sFolderPath) noexcept
 {
   return TestFileExists(sFolderPath);
 }
 
-size_t GetFileSizeBytes(const std::string& sFilePath)
+size_t GetFileSizeBytes(const std::string& sFilePath) noexcept
 {
   struct stat s;
   if (stat(sFilePath.c_str(), &s) < 0) return 0;
@@ -90,7 +91,7 @@ size_t GetFileSizeBytes(const std::string& sFilePath)
   return s.st_size;
 }
 
-bool ReadFileIntoString(const std::string& sFilePath, size_t nMaxFileSizeBytes, std::string& contents)
+bool ReadFileIntoString(const std::string& sFilePath, size_t nMaxFileSizeBytes, std::string& contents) noexcept
 {
   if (!TestFileExists(sFilePath)) {
     std::cerr<<"File \""<<sFilePath<<"\" not found"<<std::endl;
@@ -111,6 +112,26 @@ bool ReadFileIntoString(const std::string& sFilePath, size_t nMaxFileSizeBytes, 
   contents.reserve(nFileSizeBytes);
 
   contents.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+
+  return true;
+}
+
+bool WriteStringToFileAtomic(const std::string& sFilePath, const std::string& contents) noexcept
+{
+  const std::string sFilePathTemp = sFilePath + ".temp";
+
+  {
+    // Write to the temp file
+    std::ofstream f(sFilePathTemp);
+    f<<contents;
+  }
+
+  // Remove the old file if it exists
+  std::error_code ec;
+  std::filesystem::remove(sFilePath, ec);
+
+  // Rename the temp file to overwrite the real file
+  std::filesystem::rename(sFilePathTemp, sFilePath, ec);
 
   return true;
 }

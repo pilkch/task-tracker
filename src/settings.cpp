@@ -1,15 +1,6 @@
-#include <climits>
 #include <cstring>
 
-#include <limits>
 #include <iostream>
-#include <filesystem>
-
-#include <pwd.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <json-c/json.h>
 
