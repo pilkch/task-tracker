@@ -1,7 +1,27 @@
 ## About
 
-Tool to keep track of tasks that need to be done by a certain date, for example certificate expiries, OS updates, etc.  
-The task tracker serves an RSS feed, it will add entries to the feed as the expiry date approaches and when a task expires.
+Tool to collect issues from the Gitlab API, keeps track of tasks due dates, the task tracker serves an RSS feed, adding entries to the feed as the expiry date approaches and when a task expires.  
+You can use it to keep track of anything with a due date in your Gitlab issues, for example certificate expiries, OS updates, car services, oil changes, seed planting, assignments.
+
+```mermaid
+flowchart TD
+    GL(Gitlab) --> |Gitlab API| TT
+    TT(tasktracker) --> |Checks for due dates coming up| TT
+```
+
+```mermaid
+flowchart TD
+    TT2(tasktracker) --> |Serves RSS| TB
+    TB(RSS Reader, Thunderbird for example)
+```
+
+```mermaid
+flowchart TD
+    GI("Gitlab Issues") --> TL
+    TL("task_list") --> FD
+    FD("feed_data") --> RF("RSS Feed")
+    RF --> TB("RSS Reader, Thunderbird for example")
+```
 
 ## Third Party Libraries and Resources
   
