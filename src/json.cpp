@@ -7,7 +7,7 @@
 
 namespace json {
 
-bool JSONParseString(struct json_object* json, const std::string& name, std::string& out_value)
+bool JSONParseString(const struct json_object* json, const std::string& name, std::string& out_value)
 {
   out_value.clear();
 
@@ -34,7 +34,7 @@ bool JSONParseString(struct json_object* json, const std::string& name, std::str
   return true;
 }
 
-bool JSONParseBool(struct json_object* json, const std::string& name, bool& out_value)
+bool JSONParseBool(const struct json_object* json, const std::string& name, bool& out_value)
 {
   out_value = false;
 
@@ -55,7 +55,7 @@ bool JSONParseBool(struct json_object* json, const std::string& name, bool& out_
   return true;
 }
 
-bool JSONParseUint16(struct json_object* json, const std::string& name, uint16_t& out_value)
+bool JSONParseUint16(const struct json_object* json, const std::string& name, uint16_t& out_value)
 {
   out_value = 0;
 
@@ -81,7 +81,7 @@ bool JSONParseUint16(struct json_object* json, const std::string& name, uint16_t
   return true;
 }
 
-bool JSONParseUint64(struct json_object* json, const std::string& name, uint64_t& out_value)
+bool JSONParseUint64(const struct json_object* json, const std::string& name, uint64_t& out_value)
 {
   out_value = 0;
 

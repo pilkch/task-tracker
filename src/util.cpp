@@ -53,6 +53,11 @@ std::string GetDateTimeUTCISO8601(std::chrono::system_clock::time_point time) no
   return raw.substr(0, std::min<size_t>(std::max<size_t>(raw.length(), 1) - 1, 23)) + "Z";
 }
 
+bool IsDateWithinRange(const std::chrono::system_clock::time_point& date, const std::chrono::system_clock::time_point& start, const std::chrono::system_clock::time_point& end) noexcept
+{
+  return ((date >= start) && (date < end));
+}
+
 std::string GetHomeFolder() noexcept
 {
   const char* szHomeFolder = getenv("HOME");

@@ -35,7 +35,7 @@ bool LoadFeedDataFromFile(const std::string& file_path, const std::string& exter
     // Load the feed json file, this is best effort, if it doesn't exist or has an error that is ok
     const size_t nMaxFileSizeBytes = 20 * 1024;
     std::string contents;
-    if (util::ReadFileIntoString(file_path, nMaxFileSizeBytes, contents)) {
+    if (!util::ReadFileIntoString(file_path, nMaxFileSizeBytes, contents)) {
       std::cerr<<"File \""<<file_path<<"\" not found"<<std::endl;
       return false;
     }
@@ -51,43 +51,41 @@ bool LoadFeedDataFromFile(const std::string& file_path, const std::string& exter
 
     // Parse "feed"
     json_object_object_foreach(document.Get(), feed_key, feed_val) {
-      enum json_type type_feed = json_object_get_type(feed_val);
-      if ((type_feed != json_type_object) || (strcmp(feed_key, "feed") != 0)) {
-        std::cerr<<"feed object not found"<<std::endl;
-        return false;
+      enum json_type type_child = json_object_get_type(feed_val);
+      if ((type_child != json_type_object) && (type_child != json_type_array)) {
+        // Skip it
+        continue;
       }
 
-      json_object_object_foreach(feed_val, child_key, child_val) {
-        enum json_type type_child = json_object_get_type(child_val);
-        if (type_child != json_type_object) {
-          // Skip it
-          continue;
-        }
+      if (strcmp(feed_key, "properties") == 0) {
+        // Parse the feed properties
+        json::JSONParseString(feed_val, "title", feed_data.properties.title);
 
-        if (strcmp(child_key, "properties") != 0) {
-          // Parse the feed properties
-          json::JSONParseString(feed_val, "title", feed_data.properties.title);
+        uint64_t date_updated_ms = 0;
+        json::JSONParseUint64(feed_val, "date_updated", date_updated_ms);
+        feed_data.properties.date_updated = std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(date_updated_ms));
 
-          uint64_t date_updated_ms = 0;
-          json::JSONParseUint64(feed_val, "date_updated", date_updated_ms);
-          feed_data.properties.date_updated = std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(date_updated_ms));
+        json::JSONParseString(feed_val, "author_name", feed_data.properties.author_name);
+        json::JSONParseString(feed_val, "id", feed_data.properties.id);
+      } else if (strcmp(feed_key, "entries") == 0) {
+        // Parse the feed entries
+        const size_t arraylen = json_object_array_length(feed_val);
+        for (size_t i = 0; i < arraylen; i++) {
+          const json_object* item = json_object_array_get_idx(feed_val, i);
 
-          json::JSONParseString(feed_val, "author_name", feed_data.properties.author_name);
-          json::JSONParseString(feed_val, "id", feed_data.properties.id);
-        } else if (strcmp(child_key, "entries") != 0) {
-          // Parse the feed entries
           cFeedEntry entry;
 
-          json::JSONParseString(feed_val, "title", entry.title);
-          json::JSONParseString(feed_val, "link", entry.link);
-          json::JSONParseString(feed_val, "summary", entry.summary);
+          json::JSONParseString(item, "title", entry.title);
+          json::JSONParseString(item, "link", entry.link);
+          json::JSONParseString(item, "summary", entry.summary);
 
           uint64_t date_updated_ms = 0;
-          json::JSONParseUint64(feed_val, "date_updated", date_updated_ms);
+          json::JSONParseUint64(item, "date_updated", date_updated_ms);
           entry.date_updated = std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(date_updated_ms));
 
-          json::JSONParseString(feed_val, "id", entry.id);
+          json::JSONParseString(item, "id", entry.id);
 
+          std::cout<<"Adding entry "<<entry.title<<std::endl;
           feed_data.entries.push_back(entry);
         }
       }

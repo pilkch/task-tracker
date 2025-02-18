@@ -27,7 +27,9 @@ public:
   void MainLoop();
 
 private:
-  void CheckTasksAndUpdateFeedEntries(cTaskList& tasks, std::chrono::system_clock::time_point previous_update);
+  void UpdateTaskListFromGitlabIssues(cTaskList& task_list);
+  void AddFeedEntry(std::vector<cFeedEntry>& entries_to_add, const cTask& task, const std::string& summary);
+  void CheckTasksAndUpdateFeedEntries(cTaskList& task_list, const std::chrono::system_clock::time_point& start_time, const std::chrono::system_clock::time_point& end_time);
 
   const cSettings& settings;
   util::cPseudoRandomNumberGenerator rng;
@@ -38,51 +40,86 @@ cTaskTrackerThread::cTaskTrackerThread(const cSettings& _settings) :
 {
 }
 
-
-void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& tasks, std::chrono::system_clock::time_point previous_update)
+void cTaskTrackerThread::UpdateTaskListFromGitlabIssues(cTaskList& task_list)
 {
   // Query the gitlab API to get any tasks with expiry dates
-  std::vector<gitlab::cIssue> out_gitlab_issues;
-  gitlab::QueryGitlabAPI(settings, out_gitlab_issues);
+  std::vector<gitlab::cIssue> gitlab_issues;
+  gitlab::QueryGitlabAPI(settings, gitlab_issues);
 
+  // Add/update the tasks list
+  for (auto&& issue : gitlab_issues) {
+    cTask task;
+    task.title = issue.title;
+    task.date_due = issue.due_date;
+
+    task_list.tasks[issue.iid] = task;
+  }
+}
+
+void cTaskTrackerThread::AddFeedEntry(std::vector<cFeedEntry>& entries_to_add, const cTask& task, const std::string& summary)
+{
+  std::cout<<"Adding feed entry \""<<task.title<<"\": "<<summary<<std::endl;
+  cFeedEntry entry;
+  entry.title = task.title;
+  entry.summary = summary;
+  entry.date_updated = util::GetTime();
+  entry.id = feed::GenerateFeedID(rng);
+
+  entries_to_add.push_back(entry);
+}
+
+void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& task_list, const std::chrono::system_clock::time_point& start_time, const std::chrono::system_clock::time_point& end_time)
+{
+  UpdateTaskListFromGitlabIssues(task_list);
+
+  // For each entry we need to check if it is getting close to the expiry date and we just passed a notification interval in the last update
   std::vector<cFeedEntry> entries_to_add;
-  for (auto&& item : out_gitlab_issues) {
-    // Check the date on each 
-    if (date) {
-      cFeedEntry entry;
-      entry.title = item.title;
-      entry.summary = "This is a summary";
-      entry.date_updated = util::GetTime();
-      entry.id = feed::GenerateFeedID(rng);
-      entries_to_add.push_back(entry);
+
+  for (auto&& task : task_list.tasks) {
+    // Check the date on each task
+    if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(3), start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, "Task is due in 3 weeks 🔔");
+    } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(1), start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, "Task is due in 1 week 🚩");
+    } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::days(1), start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, "Task is due in 1 day 🚩");
+    } else if (util::IsDateWithinRange(task.second.date_due, start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, "Task is due now!");
     }
   }
 
-  {
-    // Update the feed entries
-    std::lock_guard<std::mutex> lock(mutex_feed_data);
-    feed_data.entries.push_back(std::span<cFeedEntry>(entries_to_add));
-  }
+  if (!entries_to_add.empty()) {
+    {
+      // Update the feed entries
+      std::lock_guard<std::mutex> lock(mutex_feed_data);
+      feed_data.entries.push_back(std::span<cFeedEntry>(entries_to_add));
+    }
 
-  SaveFeedDataToFile("feed.json");
+    SaveFeedDataToFile("feed.json");
+  }
 }
 
 void cTaskTrackerThread::MainLoop()
 {
   std::cout<<"cTaskTrackerThread::MainLoop"<<std::endl;
 
-  cTaskList tasks;
-  LoadTasksFromFile("./tasks.json", tasks);
+  cTaskList task_list;
+  LoadTasksFromFile("./tasks.json", task_list);
 
-  // TODO: Fix this
-  uint64_t uptime = 0;
-  std::chrono::system_clock::time_point previous_update { std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(std::chrono::milliseconds(uptime)) };
+  // NOTE: task-trackerd wants to be running 24/7. It will miss whatever events happen when it is not running, it doesn't remember the last time it did an update and will not catch up on missed events.
+  std::chrono::system_clock::time_point previous_update = util::GetTime();
 
-  // We update on started up and then every hour after that
-  const uint64_t minutes_between_updates = 60;
+  // We update soon after start up and then every half an hour after that
+  const uint64_t minutes_between_updates = 30;
+
+  // Sleep for 30 seconds before the first update
+  util::msleep(30 * 1000);
 
   while (true) {
-    CheckTasksAndUpdateFeedEntries(tasks, previous_update);
+    const std::chrono::system_clock::time_point start_time = previous_update;
+    const std::chrono::system_clock::time_point end_time = util::GetTime();
+    CheckTasksAndUpdateFeedEntries(task_list, start_time, end_time);
+    previous_update = end_time;
 
     const uint64_t time_until_next_update_ms = minutes_between_updates * 60 * 1000;
     util::msleep(time_until_next_update_ms);

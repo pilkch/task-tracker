@@ -22,6 +22,8 @@ std::chrono::system_clock::time_point GetTime() noexcept;
 // Get a UTC ISO8601 date time string
 // ie. "2012-03-02T04:07:34.0218628Z"
 std::string GetDateTimeUTCISO8601(std::chrono::system_clock::time_point time) noexcept;
+bool ParseDateTimeUTCISO8601(std::string_view buffer, std::chrono::system_clock::time_point& value) noexcept;
+bool IsDateWithinRange(const std::chrono::system_clock::time_point& date, const std::chrono::system_clock::time_point& start, const std::chrono::system_clock::time_point& end) noexcept;
 
 std::string GetHomeFolder() noexcept;
 std::string GetConfigFolder(std::string_view sApplicationNameLower) noexcept;
