@@ -12,6 +12,7 @@ class cTask {
 public:
   std::string title;
   std::chrono::system_clock::time_point date_due;
+  std::string link;
 };
 
 class cTaskList {

@@ -51,6 +51,7 @@ void cTaskTrackerThread::UpdateTaskListFromGitlabIssues(cTaskList& task_list)
     cTask task;
     task.title = issue.title;
     task.date_due = issue.due_date;
+    task.link = issue.web_url;
 
     task_list.tasks[issue.iid] = task;
   }
@@ -64,6 +65,7 @@ void cTaskTrackerThread::AddFeedEntry(std::vector<cFeedEntry>& entries_to_add, c
   entry.summary = summary;
   entry.date_updated = util::GetTime();
   entry.id = feed::GenerateFeedID(rng);
+  entry.link = task.link;
 
   entries_to_add.push_back(entry);
 }
@@ -80,11 +82,11 @@ void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& task_list, co
     if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(3), start_time, end_time)) {
       AddFeedEntry(entries_to_add, task.second, "Task is due in 3 weeks 🔔");
     } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(1), start_time, end_time)) {
-      AddFeedEntry(entries_to_add, task.second, "Task is due in 1 week 🚩");
+      AddFeedEntry(entries_to_add, task.second, "Task is due in 1 week 🔔");
     } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::days(1), start_time, end_time)) {
       AddFeedEntry(entries_to_add, task.second, "Task is due in 1 day 🚩");
     } else if (util::IsDateWithinRange(task.second.date_due, start_time, end_time)) {
-      AddFeedEntry(entries_to_add, task.second, "Task is due now!");
+      AddFeedEntry(entries_to_add, task.second, "Task is due now! 🚩");
     }
   }
 

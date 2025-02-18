@@ -69,7 +69,11 @@ bool ParseGitlabIssuesResponse(const std::string& response, std::vector<cIssue>&
       return false;
     }
 
-    //std::cout<<"Item: "<<new_issue.iid<<", "<<new_issue.title<<", "<<new_issue.due_date<<std::endl;
+    if (!json::JSONParseString(issue, "web_url", new_issue.web_url)) {
+      return false;
+    }
+
+    //std::cout<<"Item: "<<new_issue.iid<<", "<<new_issue.title<<", "<<new_issue.due_date<<", "<<web_url<<std::endl;
     out_gitlab_issues.push_back(new_issue);
   }
 
