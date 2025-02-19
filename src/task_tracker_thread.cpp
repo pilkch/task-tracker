@@ -97,7 +97,7 @@ void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& task_list, co
       feed_data.entries.push_back(std::span<cFeedEntry>(entries_to_add));
     }
 
-    SaveFeedDataToFile("feed.json");
+    SaveFeedDataToFile();
   }
 }
 

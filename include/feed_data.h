@@ -40,7 +40,7 @@ public:
 extern std::mutex mutex_feed_data;
 extern cFeedData feed_data;
 
-bool LoadFeedDataFromFile(const std::string& file_path, const std::string& external_url);
-bool SaveFeedDataToFile(const std::string& file_path);
+bool LoadFeedDataFromFile(const std::string& external_url);
+bool SaveFeedDataToFile();
 
 }

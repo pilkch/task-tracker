@@ -1,5 +1,6 @@
 #include <cstring>
 
+#include <filesystem>
 #include <iostream>
 
 #include <json-c/json.h>
@@ -12,10 +13,12 @@
 
 namespace tasktracker {
 
+const std::string feed_data_json_file = "feed_data/feed.json";
+
 std::mutex mutex_feed_data;
 cFeedData feed_data;
 
-bool LoadFeedDataFromFile(const std::string& file_path, const std::string& external_url)
+bool LoadFeedDataFromFile(const std::string& external_url)
 {
   {
     util::cPseudoRandomNumberGenerator rng;
@@ -35,15 +38,15 @@ bool LoadFeedDataFromFile(const std::string& file_path, const std::string& exter
     // Load the feed json file, this is best effort, if it doesn't exist or has an error that is ok
     const size_t nMaxFileSizeBytes = 20 * 1024;
     std::string contents;
-    if (!util::ReadFileIntoString(file_path, nMaxFileSizeBytes, contents)) {
-      std::cerr<<"File \""<<file_path<<"\" not found"<<std::endl;
+    if (!util::ReadFileIntoString(feed_data_json_file, nMaxFileSizeBytes, contents)) {
+      std::cerr<<"File \""<<feed_data_json_file<<"\" not found"<<std::endl;
       return false;
     }
 
 
     json::cJSONDocument document(json_tokener_parse(contents.c_str()));
     if (!document.IsValid()) {
-      std::cerr<<"Invalid JSON config \""<<file_path<<"\""<<std::endl;
+      std::cerr<<"Invalid JSON config \""<<feed_data_json_file<<"\""<<std::endl;
       return false;
     }
 
@@ -95,8 +98,14 @@ bool LoadFeedDataFromFile(const std::string& file_path, const std::string& exter
   return true;
 }
 
-bool SaveFeedDataToFile(const std::string& file_path)
+bool SaveFeedDataToFile()
 {
+  std::error_code ec;
+  if (!std::filesystem::create_directory("feed_data", ec)) {
+    std::cerr<<"Error creating directory feed_data"<<std::endl;
+    return false;
+  }
+
   std::lock_guard<std::mutex> lock(mutex_feed_data);
 
 	struct json_object* jobj = json_object_new_object();
@@ -135,7 +144,7 @@ bool SaveFeedDataToFile(const std::string& file_path)
 
   const std::string json_output = std::string(json_object_to_json_string_ext(jobj, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY)) + "\n";
   //std::cout<<"JSON: "<<json_output<<std::endl;
-  util::WriteStringToFileAtomic(file_path, json_output);
+  util::WriteStringToFileAtomic(feed_data_json_file, json_output);
  
 	json_object_put(jobj); // Delete the json object
 

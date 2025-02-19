@@ -108,10 +108,11 @@ sudo dnf install podman slirp4netns
 ```bash
 podman build --tag fedora:tasktracker -f ./Dockerfile
 ```
-3. Run the container (Replace the IP and port with your own):
+3. Run the container (Replace the IP and port with your own):  
+NOTE: We need to use `allow_host_loopback` when the gitlab server is on the same host as us, otherwise you get weird can't connect errors when task-trackerd tries to connect to gitlab  
 ```bash
-mkdir -p tasks
-podman run --init -v tasks:/root/task-tracker/tasks/:z -p 192.168.0.3:8443:8443 --shm-size 256m --name tasktracker --rm fedora:tasktracker
+mkdir -p feed_data
+podman run --init -v ./feed_data:/root/task-tracker/feed_data:z --network slirp4netns:allow_host_loopback=true -p 192.168.0.3:8443:8443 --shm-size 256m --name tasktracker --rm fedora:tasktracker
 ```
 
 ### Use the feed

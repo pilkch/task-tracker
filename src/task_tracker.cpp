@@ -32,7 +32,7 @@ bool RunServer(const cSettings& settings)
   std::cout<<"Running server"<<std::endl;
 
   // Load the existing feed data from a file
-  LoadFeedDataFromFile("./feed.json", settings.GetExternalURL());
+  LoadFeedDataFromFile(settings.GetExternalURL());
 
 #ifndef DEBUG_FAKE_FEED_ENTIES
   // Curl is used for querying gitlab issues
