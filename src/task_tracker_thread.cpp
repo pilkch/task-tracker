@@ -8,9 +8,11 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include <sys/inotify.h>
-
+#include "atom_feed.h"
+#include "https_socket.h"
+#include "json.h"
 #include "feed_data.h"
+#include "gitlab_api.h"
 #include "poll_helper.h"
 #include "task_tracker.h"
 #include "task_tracker_thread.h"
@@ -18,173 +20,111 @@
 
 namespace tasktracker {
 
-void CheckTasksAndUpdateFeedEntries(cTaskList& tasks, std::chrono::system_clock::time_point previous_update)
-{/*
-  std::vector<cFeedEntry> entries_to_add;
-  for (auto&& item : tasks.tasks) {
-    // Check the date on each 
-    if (date) {
-      entries_to_add
-    }
-}
-
-  // Update the feed entries
-  std::lock_guard<std::mutex> lock(mutex_feed_data);
-  for (auto&& item : entries_to_add) {
-    // Add the entries
-
-  }*/
-}
-
-
 class cTaskTrackerThread {
 public:
-  cTaskTrackerThread();
+  explicit cTaskTrackerThread(const cSettings& settings);
 
   void MainLoop();
 
 private:
-  
+  void UpdateTaskListFromGitlabIssues(cTaskList& task_list);
+  void AddFeedEntry(std::vector<cFeedEntry>& entries_to_add, const cTask& task, bool high_priority, const std::string& summary);
+  void CheckTasksAndUpdateFeedEntries(cTaskList& task_list, const std::chrono::system_clock::time_point& start_time, const std::chrono::system_clock::time_point& end_time);
+
+  const cSettings& settings;
+  util::cPseudoRandomNumberGenerator rng;
 };
 
-cTaskTrackerThread::cTaskTrackerThread()
+cTaskTrackerThread::cTaskTrackerThread(const cSettings& _settings) :
+  settings(_settings)
 {
 }
 
-
-/* Size of buffer to use when reading inotify events */
-#define INOTIFY_BUFFER_SIZE 8192
-
-/* FANotify-like helpers to iterate events */
-#define IN_EVENT_DATA_LEN (sizeof(struct inotify_event))
-#define IN_EVENT_NEXT(event, length)            \
-  ((length) -= (event)->len,                    \
-   (struct inotify_event*)(((char *)(event)) +	\
-                           (event)->len))
-#define IN_EVENT_OK(event, length)                  \
-  ((long)(length) >= (long)IN_EVENT_DATA_LEN &&	    \
-   (long)(event)->len >= (long)IN_EVENT_DATA_LEN && \
-   (long)(event)->len <= (long)(length))
-
-namespace util {
-
-class cFileWatcher {
-public:
-  cFileWatcher();
-  ~cFileWatcher();
-
-  void AddWatch(const std::string& file_path);
-
-  int GetInotifyFD() const { return inotify_fd; }
-
-  bool ReadEvents();
-
-private:
-  void RemoveWatch();
-
-  int inotify_fd; // inotify file descriptor
-  int monitor_fd; // Monitored file descriptor
-};
-
-cFileWatcher::cFileWatcher() :
-  inotify_fd(-1),
-  monitor_fd(-1)
+void cTaskTrackerThread::UpdateTaskListFromGitlabIssues(cTaskList& task_list)
 {
-  if ((inotify_fd = inotify_init()) < 0) {
-    std::cerr<<"inotify_init failed "<<strerror(errno)<<std::endl;
+  // Query the gitlab API to get any tasks with expiry dates
+  std::vector<gitlab::cIssue> gitlab_issues;
+  gitlab::QueryGitlabAPI(settings, gitlab_issues);
+
+  // Add/update the tasks list
+  for (auto&& issue : gitlab_issues) {
+    cTask task;
+    task.title = issue.title;
+    task.date_due = issue.due_date;
+    task.link = issue.web_url;
+
+    task_list.tasks[issue.iid] = task;
   }
 }
 
-cFileWatcher::~cFileWatcher()
+void cTaskTrackerThread::AddFeedEntry(std::vector<cFeedEntry>& entries_to_add, const cTask& task, bool high_priority, const std::string& summary)
 {
-  RemoveWatch();
+  std::cout<<"Adding feed entry \""<<task.title<<"\": "<<summary<<std::endl;
+  cFeedEntry entry;
+  entry.title = (high_priority ? "🚩" : "🔔") + task.title;
+  entry.summary = summary;
+  entry.date_updated = util::GetTime();
+  entry.id = feed::GenerateFeedID(rng);
+  entry.link = task.link;
 
-  close(inotify_fd);
-  inotify_fd = -1;
+  entries_to_add.push_back(entry);
 }
 
-void cFileWatcher::RemoveWatch()
+void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& task_list, const std::chrono::system_clock::time_point& start_time, const std::chrono::system_clock::time_point& end_time)
 {
-  if ((inotify_fd != -1) && (monitor_fd != -1)) {
-    inotify_rm_watch(inotify_fd, monitor_fd);
-    monitor_fd = -1;
-  }
-}
+  UpdateTaskListFromGitlabIssues(task_list);
 
-void cFileWatcher::AddWatch(const std::string& file_path)
-{
-  RemoveWatch();
+  // For each entry we need to check if it is getting close to the expiry date and we just passed a notification interval in the last update
+  std::vector<cFeedEntry> entries_to_add;
 
-  // Setup inotify notifications mask
-  const int event_mask =
-    IN_CLOSE_WRITE |   // Writable File closed
-    IN_MODIFY          // File modified
-  ;
-
-  if (inotify_fd != -1) {
-    monitor_fd = inotify_add_watch(inotify_fd, file_path.c_str(), event_mask);
-    if (monitor_fd < 0) {
-      std::cerr<<"inotify_add_watch failed "<<strerror(errno)<<std::endl;
-    }
-  }
-}
-
-bool cFileWatcher::ReadEvents()
-{
-  bool result = false;
-
-  // Read events from the inotify file descriptor
-  char buffer[INOTIFY_BUFFER_SIZE];
-
-  ssize_t length = read(inotify_fd, buffer, INOTIFY_BUFFER_SIZE);
-  if (length > 0) {
-    const struct inotify_event* event = (const struct inotify_event*)buffer;
-    while (IN_EVENT_OK(event, length)) {
-      // TODO: If we ever monitor more than one file or more than just "Did the user change the file", then we would need to actually process the event here, we currently just assume it is for the one file we are monitoring
-      //ProcessEvent(event);
-      result = true;
-      event = IN_EVENT_NEXT(event, length);
+  for (auto&& task : task_list.tasks) {
+    // Check the date on each task
+    if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(3), start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, false, "Task is due in 3 weeks");
+    } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(1), start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, false, "Task is due in 1 week");
+    } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::days(1), start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, true, "Task is due in 1 day");
+    } else if (util::IsDateWithinRange(task.second.date_due, start_time, end_time)) {
+      AddFeedEntry(entries_to_add, task.second, true, "Task is due now!");
     }
   }
 
-  return result;
-}
+  if (!entries_to_add.empty()) {
+    {
+      // Update the feed entries
+      std::lock_guard<std::mutex> lock(mutex_feed_data);
+      feed_data.entries.push_back(std::span<cFeedEntry>(entries_to_add));
+    }
 
+    SaveFeedDataToFile();
+  }
 }
 
 void cTaskTrackerThread::MainLoop()
 {
   std::cout<<"cTaskTrackerThread::MainLoop"<<std::endl;
 
-  cTaskList tasks;
-  LoadTasksFromFile("./tasks.json", tasks);
+  cTaskList task_list;
+  LoadTasksFromFile("./tasks.json", task_list);
 
-  util::cFileWatcher file_watcher;
-  file_watcher.AddWatch("./tasks.json");
+  // NOTE: task-trackerd wants to be running 24/7. It will miss whatever events happen when it is not running, it doesn't remember the last time it did an update and will not catch up on missed events.
+  std::chrono::system_clock::time_point previous_update = util::GetTime();
 
-  LoadStateFromFile("./state.json", feed_data);
+  // We update soon after start up and then every half an hour after that
+  const uint64_t minutes_between_updates = 30;
 
-  // TODO: Fix this
-  uint64_t uptime = 0;
-  std::chrono::system_clock::time_point previous_update { std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(std::chrono::milliseconds(uptime)) };
-
-  poll_read p(file_watcher.GetInotifyFD());
+  // Sleep for 30 seconds before the first update
+  util::msleep(30 * 1000);
 
   while (true) {
-    // TODO: Fix this
-    const uint64_t time_until_next_update_ms = 5000;
+    const std::chrono::system_clock::time_point start_time = previous_update;
+    const std::chrono::system_clock::time_point end_time = util::GetTime();
+    CheckTasksAndUpdateFeedEntries(task_list, start_time, end_time);
+    previous_update = end_time;
 
-    const POLL_READ_RESULT result = p.poll(time_until_next_update_ms);
-    if (result == POLL_READ_RESULT::DATA_READY) {
-      file_watcher.ReadEvents();
-
-      std::cout<<"Loading tasks.json file"<<std::endl;
-      if (!LoadTasksFromFile("./tasks.json", tasks)) {
-        std::cerr<<"Error parsing tasks.json"<<std::endl;
-      }
-    }
-
-    CheckTasksAndUpdateFeedEntries(tasks, previous_update);
+    const uint64_t time_until_next_update_ms = minutes_between_updates * 60 * 1000;
+    util::msleep(time_until_next_update_ms);
   }
 }
 
@@ -212,7 +152,7 @@ bool StartTaskTrackerThread(const cSettings& settings)
   std::cout<<"StartTaskTrackerThread Running server "<<std::endl;
 
   // Ok we have successfully connected and subscribed so now we can start the thread to read updates
-  cTaskTrackerThread* pTaskTrackerThread = new cTaskTrackerThread();
+  cTaskTrackerThread* pTaskTrackerThread = new cTaskTrackerThread(settings);
   if (pTaskTrackerThread == nullptr) {
     std::cerr<<"StartTaskTrackerThread Error creating task tracker thread, returning false"<<std::endl;
     return false;

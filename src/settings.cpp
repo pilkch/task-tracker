@@ -1,99 +1,12 @@
-#include <climits>
 #include <cstring>
 
-#include <limits>
 #include <iostream>
-#include <filesystem>
-
-#include <pwd.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <json-c/json.h>
 
 #include "json.h"
 #include "settings.h"
 #include "util.h"
-
-namespace {
-
-bool JSONParseString(struct json_object* json, const std::string& name, std::string& out_value)
-{
-  out_value.clear();
-
-  struct json_object* obj = json_object_object_get(json, name.c_str());
-  if (obj == nullptr) {
-    std::cerr<<name<<" not found"<<std::endl;
-    return false;
-  }
-
-  enum json_type type = json_object_get_type(obj);
-  if (type != json_type_string) {
-    std::cerr<<name<<" is not a string"<<std::endl;
-    return false;
-  }
-
-  const char* value = json_object_get_string(obj);
-  if (value == nullptr) {
-    std::cerr<<name<<" is not valid"<<std::endl;
-    return false;
-  }
-
-  out_value = value;
-
-  return true;
-}
-
-bool JSONParseBool(struct json_object* json, const std::string& name, bool& out_value)
-{
-  out_value = false;
-
-  struct json_object* obj = json_object_object_get(json, name.c_str());
-  if (obj == nullptr) {
-    std::cerr<<name<<" not found"<<std::endl;
-    return false;
-  }
-
-  enum json_type type = json_object_get_type(obj);
-  if (type != json_type_boolean) {
-    std::cerr<<name<<" is not a bool"<<std::endl;
-    return false;
-  }
-
-  out_value = json_object_get_boolean(obj);
-
-  return true;
-}
-
-bool JSONParseUint16(struct json_object* json, const std::string& name, uint16_t& out_value)
-{
-  out_value = 0;
-
-  struct json_object* obj = json_object_object_get(json, name.c_str());
-  if (obj == nullptr) {
-    std::cerr<<name<<" not found"<<std::endl;
-    return false;
-  }
-
-  enum json_type type = json_object_get_type(obj);
-  if (type != json_type_int) {
-    std::cerr<<name<<" is not an int"<<std::endl;
-    return false;
-  }
-
-  const int value = json_object_get_int(obj);
-  if ((value <= 0) || (value > USHRT_MAX)) {
-    std::cerr<<name<<" is not valid"<<std::endl;
-    return false;
-  }
-
-  out_value = value;
-  return true;
-}
-
-}
 
 namespace tasktracker {
 
@@ -114,7 +27,7 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
     return false;
   }
 
-  util::cJSONDocument document(json_tokener_parse(contents.c_str()));
+  json::cJSONDocument document(json_tokener_parse(contents.c_str()));
   if (!document.IsValid()) {
     std::cerr<<"Invalid JSON config \""<<sFilePath<<"\""<<std::endl;
     return false;
@@ -133,7 +46,7 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
     // Parse running in container (Optional)
     {
       bool value = 0;
-      if (JSONParseBool(settings_val, "running_in_container", value)) {
+      if (json::JSONParseBool(settings_val, "running_in_container", value)) {
         running_in_container = value;
       }
     }
@@ -141,7 +54,7 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
     // Parse https address
     {
       std::string value;
-      if (!JSONParseString(settings_val, "ip", value)) {
+      if (!json::JSONParseString(settings_val, "ip", value)) {
         return false;
       }
 
@@ -151,7 +64,7 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
     // Parse https port
     {
       uint16_t value = 0;
-      if (!JSONParseUint16(settings_val, "port", value)) {
+      if (!json::JSONParseUint16(settings_val, "port", value)) {
         return false;
       }
 
@@ -159,21 +72,35 @@ bool cSettings::LoadFromFile(const std::string& sFilePath)
     }
 
     // Parse external URL
-    if (!JSONParseString(settings_val, "external_url", external_url)) {
+    if (!json::JSONParseString(settings_val, "external_url", external_url)) {
       return false;
     }
 
     // Parse https private key and certificate
-    if (!JSONParseString(settings_val, "https_private_key", https_private_key)) {
+    if (!json::JSONParseString(settings_val, "https_private_key", https_private_key)) {
       return false;
     }
 
-    if (!JSONParseString(settings_val, "https_public_cert", https_public_cert)) {
+    if (!json::JSONParseString(settings_val, "https_public_cert", https_public_cert)) {
       return false;
     }
 
     // Parse token
-    if (!JSONParseString(settings_val, "token", token)) {
+    if (!json::JSONParseString(settings_val, "token", token)) {
+      return false;
+    }
+
+
+    // Parse gitlab settings
+    if (!json::JSONParseString(settings_val, "gitlab_url", gitlab_url)) {
+      return false;
+    }
+
+    if (!json::JSONParseString(settings_val, "gitlab_api_token", gitlab_api_token)) {
+      return false;
+    }
+
+    if (!json::JSONParseString(settings_val, "gitlab_https_public_cert", gitlab_https_public_cert)) {
       return false;
     }
   }
@@ -187,7 +114,8 @@ constexpr bool cSettings::IsValid() const
     (ip.IsValid() || (util::ToString(ip) == "0.0.0.0")) && (port != 0) &&
     !external_url.empty() &&
     !https_private_key.empty() && !https_public_cert.empty() &&
-    !token.empty()
+    !token.empty() &&
+    !gitlab_url.empty() && !gitlab_api_token.empty() && !gitlab_https_public_cert.empty()
   );
 }
 
@@ -200,6 +128,9 @@ void cSettings::Clear()
   https_private_key.clear();
   https_public_cert.clear();
   token.clear();
+  gitlab_url.clear();
+  gitlab_api_token.clear();
+  gitlab_https_public_cert.clear();
 }
 
 }

@@ -198,8 +198,10 @@ bool WriteFeedXML(const tasktracker::cFeedData& feed_data, std::ostringstream& o
     return false;
   }
 
-  for (auto&& item : feed_data.entries) {
-    WriteFeedXMLEntry(writer, item);
+  // NOTE: We actually want to output the feed data in reverse order, new events are at the top of the feed, older items drop off the end
+  const size_t nentries = feed_data.entries.size();
+  for (size_t i = 0; i < nentries; i++) {
+    WriteFeedXMLEntry(writer, feed_data.entries[(nentries - i) - 1]);
   }
  
   // End the feed element

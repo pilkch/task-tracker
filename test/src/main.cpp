@@ -9,6 +9,7 @@ int main(int argc, char** argv)
 
   ::testing::InitGoogleTest(&argc, argv);
 
+  //testing::GTEST_FLAG(filter) = "Util.TestRingBuffer";
   //testing::GTEST_FLAG(filter) = "TaskTracker.TestAtomFeed";
 
   const int result = RUN_ALL_TESTS();

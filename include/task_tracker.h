@@ -1,9 +1,8 @@
 #pragma once
 
 #include <chrono>
-#include <list>
 #include <string>
-#include <vector>
+#include <map>
 
 #include "settings.h"
 
@@ -11,13 +10,14 @@ namespace tasktracker {
 
 class cTask {
 public:
-  std::string description;
+  std::string title;
   std::chrono::system_clock::time_point date_due;
+  std::string link;
 };
 
 class cTaskList {
 public:
-  std::vector<cTask> tasks;
+  std::map<uint16_t, cTask> tasks; // Map of iid (Gitlab unique issue ID) to task
 };
 
 bool LoadTasksFromFile(const std::string& file_path, cTaskList& tasks);
