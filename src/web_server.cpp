@@ -241,7 +241,7 @@ public:
   cWebServer(cStaticResourcesRequestHandler& static_resources_request_handler, cDynamicResourcesRequestHandler& dynamic_resources_request_handler);
   ~cWebServer();
 
-  bool Open(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert);
+  bool Open(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert, bool fuzzing);
   void NoMoreConnections();
   bool Close();
 
@@ -276,7 +276,7 @@ cWebServer::~cWebServer()
   Close();
 }
 
-bool cWebServer::Open(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert)
+bool cWebServer::Open(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert, bool fuzzing)
 {
   const std::string address(util::ToString(host));
 
@@ -290,6 +290,18 @@ bool cWebServer::Open(const util::cIPAddress& host, uint16_t port, const std::st
   sad.sin_family = AF_INET;
   sad.sin_port   = htons(port);
 
+  std::vector<struct MHD_OptionItem> options = {
+    { MHD_OPTION_CONNECTION_TIMEOUT, static_cast<intptr_t>((unsigned int)120), nullptr },
+    { MHD_OPTION_SOCK_ADDR, reinterpret_cast<intptr_t>((const struct sockaddr*)&sad), nullptr },
+  };
+
+  if (fuzzing) {
+    options.push_back({ MHD_OPTION_LISTENING_ADDRESS_REUSE, static_cast<intptr_t>(1), nullptr }); // So that we can bind the port repeatedly in quick succession
+  } else {
+    options.push_back({ MHD_OPTION_CONNECTION_LIMIT, static_cast<intptr_t>(10), nullptr }); // Rate limit  to 100 simultaneous connections per IP
+  }
+
+
   if (!private_key.empty() && !public_cert.empty()) {
     std::cout<<"cWebServer::Run Starting server at https://"<<address<<":"<<port<<"/"<<std::endl;
     std::string server_key;
@@ -297,28 +309,32 @@ bool cWebServer::Open(const util::cIPAddress& host, uint16_t port, const std::st
     std::string server_cert;
     util::ReadFileIntoString(public_cert, 10 * 1024, server_cert);
 
-    daemon = MHD_start_daemon(MHD_ALLOW_UPGRADE | MHD_USE_AUTO
+    options.push_back({ MHD_OPTION_HTTPS_MEM_KEY, 0, static_cast<void*>(const_cast<char*>(server_key.c_str())) });
+    options.push_back({ MHD_OPTION_HTTPS_MEM_CERT, 0, static_cast<void*>(const_cast<char*>(server_cert.c_str())) });
+
+    options.push_back({ MHD_OPTION_END, 0, nullptr });
+
+    daemon = MHD_start_daemon(MHD_USE_AUTO
                           | MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_ERROR_LOG
                           | MHD_USE_TLS,
                           port,
                           nullptr, nullptr,
                           &_OnRequest, this,
-                          MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int)120,
-                          MHD_OPTION_HTTPS_MEM_KEY, server_key.c_str(),
-                          MHD_OPTION_HTTPS_MEM_CERT, server_cert.c_str(),
-                          MHD_OPTION_SOCK_ADDR, (struct sockaddr*)&sad,
-                          MHD_OPTION_LISTENING_ADDRESS_REUSE, 1, // Mainly for fuzz testing so that we can bind the port repeatedly in quick succession
+                          MHD_OPTION_ARRAY,
+                          options.data(),
                           MHD_OPTION_END);
   } else {
     std::cout<<"cWebServer::Run Starting server at http://"<<address<<":"<<port<<"/"<<std::endl;
-    daemon = MHD_start_daemon(MHD_ALLOW_UPGRADE | MHD_USE_AUTO
+
+    options.push_back({ MHD_OPTION_END, 0, nullptr });
+
+    daemon = MHD_start_daemon(MHD_USE_AUTO
                           | MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_ERROR_LOG,
                           port,
                           nullptr, nullptr,
                           &_OnRequest, this,
-                          MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int)120,
-                          MHD_OPTION_SOCK_ADDR, (struct sockaddr*)&sad,
-                          MHD_OPTION_LISTENING_ADDRESS_REUSE, 1, // Mainly for fuzz testing so that we can bind the port repeatedly in quick succession
+                          MHD_OPTION_ARRAY,
+                          options.data(),
                           MHD_OPTION_END);
   }
 
@@ -437,7 +453,7 @@ cWebServerManager::~cWebServerManager()
   }
 }
 
-bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert, const std::string& token)
+bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert, bool fuzzing, const std::string& token)
 {
   if (
     (static_resources_request_handler != nullptr) ||
@@ -458,7 +474,7 @@ bool cWebServerManager::Create(const util::cIPAddress& host, uint16_t port, cons
   dynamic_resources_request_handler = new cDynamicResourcesRequestHandler(token);
 
   webserver = new cWebServer(*static_resources_request_handler, *dynamic_resources_request_handler);
-  if (!webserver->Open(host, port, private_key, public_cert)) {
+  if (!webserver->Open(host, port, private_key, public_cert, fuzzing)) {
     std::cerr<<"Error opening web server"<<std::endl;
     return false;
   }

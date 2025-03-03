@@ -14,7 +14,7 @@ public:
   cWebServerManager();
   ~cWebServerManager();
 
-  bool Create(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert, const std::string& token);
+  bool Create(const util::cIPAddress& host, uint16_t port, const std::string& private_key, const std::string& public_cert, bool fuzzing, const std::string& token);
   bool Destroy();
 
 private:

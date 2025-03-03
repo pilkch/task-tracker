@@ -53,7 +53,8 @@ bool RunServer(const cSettings& settings)
 
   // Now run the web server
   cWebServerManager web_server_manager;
-  if (!web_server_manager.Create(settings.GetIP(), settings.GetPort(), settings.GetHTTPSPrivateKey(), settings.GetHTTPSPublicCert(), settings.GetToken())) {
+  const bool fuzzing = false;
+  if (!web_server_manager.Create(settings.GetIP(), settings.GetPort(), settings.GetHTTPSPrivateKey(), settings.GetHTTPSPublicCert(), fuzzing, settings.GetToken())) {
     std::cerr<<"Error creating web server"<<std::endl;
     return false;
   }
