@@ -125,21 +125,24 @@ wget --no-check-certificate https://192.160.0.3:8443/feed/atom.xml?token=<your t
 
 ## Fuzzing
 
+### Building
+
+```bash
+cd fuzz
+cmake . && make -j
+```
+
 ### Fuzz the web server
 
 **Note: This is super slow because we have to create a web server each time, and perform one request, that isn't too slow, but then we have to clean up which means requesting that any connect client threads exit, waiting for them to exit and generally cleaning up**  
 Though, we can probably do some smarter checking in the web server clean up code and avoid waiting as long.
 
 ```bash
-cd fuzz
-make
 mkdir -p ./corpus/fuzz_web_server_https_url/
 ./fuzz_web_server_https_url -runs=500000 -max_len=10000 -workers=2 -fork=1 -shrink=1 ./corpus/fuzz_web_server_https_url
 ```
 
 ```bash
-cd fuzz
-make
 mkdir -p ./corpus/fuzz_web_server_https_request/
 ./fuzz_web_server_https_request -runs=500000 -max_len=10000 -workers=2 -fork=1 -shrink=1 ./corpus/fuzz_web_server_https_request
 ```
