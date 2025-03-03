@@ -216,7 +216,7 @@ bool cDynamicResourcesRequestHandler::HandleRequest(struct MHD_Connection* conne
       // The user has supplied the expected token, show the feed
       std::ostringstream output;
       {
-        std::mutex mutex_feed_data;
+        std::lock_guard<std::mutex> lock(mutex_feed_data);
         feed::WriteFeedXML(feed_data, output);
       }
 
