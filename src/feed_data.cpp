@@ -25,7 +25,7 @@ bool LoadFeedDataFromFile(const std::string& external_url)
 
     // Set the default feed properties
     std::lock_guard<std::mutex> lock(mutex_feed_data);
-    feed_data.properties.title = "My Feed";
+    feed_data.properties.title = "Task Tracker";
     feed_data.properties.link = external_url + "feed/atom.xml";
     feed_data.properties.date_updated = util::GetTime();
     feed_data.properties.author_name = "My Name";
