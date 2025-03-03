@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(task-tracker)
 
 file(GLOB_RECURSE sources src/*.cpp)
-file(GLOB_RECURSE sources_test src/atom_feed.cpp src/debug_fake_feed_entries_update_thread.cpp src/feed_data.cpp src/ip_address.cpp src/random.cpp src/settings.cpp src/task_tracker.cpp src/task_tracker_thread.cpp src/util.cpp src/web_server.cpp src/xml_string_writer.cpp test/src/*.cpp)
+file(GLOB_RECURSE sources_test src/atom_feed.cpp src/curl_helper.cpp src/debug_fake_feed_entries_update_thread.cpp src/feed_data.cpp src/gitlab_api.cpp src/https_socket.cpp src/ip_address.cpp src/json.cpp src/random.cpp src/settings.cpp src/task_tracker.cpp src/task_tracker_thread.cpp src/util.cpp src/web_server.cpp src/xml_string_writer.cpp test/src/*.cpp)
 
 # Add the sources to the target
 add_executable(task-trackerd ${sources})
@@ -67,10 +67,13 @@ set(SECURITYHEADERS_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/../libsecurityheaders/inc
 # System microhttpd library
 set(MicroHttpd_LIBRARY "-lmicrohttpd")
 
+# System curl library
+set(CURL_LIBRARY "-lcurl")
+find_package(CURL REQUIRED)
 
-target_include_directories(task-trackerd SYSTEM PUBLIC ${MICROHTTPD_INCLUDE_DIR} ${SECURITYHEADERS_INCLUDE_DIR})
-target_link_directories(task-trackerd PUBLIC ${MICROHTTPD_LIB_DIR})
-target_link_libraries(task-trackerd PUBLIC microhttpd json-c LibXml2::LibXml2)
+target_include_directories(task-trackerd SYSTEM PUBLIC ${MICROHTTPD_INCLUDE_DIR} ${SECURITYHEADERS_INCLUDE_DIR} ${CURL_INCLUDE_DIR})
+target_link_directories(task-trackerd PUBLIC ${MICROHTTPD_LIB_DIR} ${CURL_LIB_DIR})
+target_link_libraries(task-trackerd PUBLIC microhttpd json-c LibXml2::LibXml2 curl)
 
 ###############################################################################
 ## testing ####################################################################
@@ -93,10 +96,10 @@ set_target_properties(task-trackerd PROPERTIES ENABLE_EXPORTS on)
 
 set_property(TARGET unit_tests PROPERTY INCLUDE_DIRECTORIES ${APP_INCLUDE_DIRECTORIES} ${CMAKE_SOURCE_DIR}/test/include)
 
-target_include_directories(unit_tests SYSTEM PUBLIC ${MICROHTTPD_INCLUDE_DIR} ${SECURITYHEADERS_INCLUDE_DIR})
-target_link_directories(unit_tests PUBLIC ${MICROHTTPD_LIB_DIR})
+target_include_directories(unit_tests SYSTEM PUBLIC ${MICROHTTPD_INCLUDE_DIR} ${SECURITYHEADERS_INCLUDE_DIR} ${CURL_INCLUDE_DIR})
+target_link_directories(unit_tests PUBLIC ${MICROHTTPD_LIB_DIR} ${CURL_LIB_DIR})
 
-target_link_libraries(unit_tests PUBLIC ${GTEST_BOTH_LIBRARIES} gnutls gnutlsxx microhttpd json-c LibXml2::LibXml2)
+target_link_libraries(unit_tests PUBLIC ${GTEST_BOTH_LIBRARIES} gnutls gnutlsxx microhttpd json-c LibXml2::LibXml2 curl)
 
 target_include_directories(unit_tests PUBLIC
   ${GTEST_INCLUDE_DIRS} # doesn't do anything on Linux

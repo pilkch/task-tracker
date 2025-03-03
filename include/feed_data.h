@@ -1,11 +1,14 @@
 #pragma once
 
 #include <chrono>
-#include <list>
 #include <string>
 #include <mutex>
 
+#include "ring_buffer.h"
+
 namespace tasktracker {
+
+const size_t MAX_FEED_ENTRIES = 50;
 
 class cFeedProperties {
 public:
@@ -28,7 +31,7 @@ public:
 class cFeedData {
 public:
   cFeedProperties properties;
-  std::list<cFeedEntry> entries;
+  util::ring_buffer<cFeedEntry, MAX_FEED_ENTRIES> entries;
 };
 
 
@@ -37,6 +40,7 @@ public:
 extern std::mutex mutex_feed_data;
 extern cFeedData feed_data;
 
-bool LoadStateFromFile(const std::string& file_path, cFeedData& feed_data);
+bool LoadFeedDataFromFile(const std::string& external_url);
+bool SaveFeedDataToFile();
 
 }

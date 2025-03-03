@@ -3,9 +3,9 @@
     "running_in_container": true,
     "ip": "192.168.0.3",
     "port": 8443,
-    "external_url": "https://tasktracker.network.home:8443/",
+    "external_url": "https://tasktracker.mydomain.home:8443/",
     "https_private_key": "./server.key",
     "https_public_cert": "./server.crt",
-    "token": "PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB"
+    "token": "PJYC40Q3AFJMl1uidxivonEL1NZ3DXM9sAlPgoeSDu5ekFQzzP0D8uibgnvZxbkB"
   }
 }
