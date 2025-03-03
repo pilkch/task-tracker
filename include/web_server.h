@@ -6,7 +6,6 @@ namespace tasktracker {
 
 class cStaticResourcesRequestHandler;
 class cDynamicResourcesRequestHandler;
-class cWebSocketRequestHandler;
 class cWebServer;
 
 // TODO: Refactor this, it is a bit of a mess
@@ -22,7 +21,6 @@ private:
   // NOTE: We would use std::unique_ptr, but it needs to know about the destructor of the item to delete it
   cStaticResourcesRequestHandler* static_resources_request_handler;
   cDynamicResourcesRequestHandler* dynamic_resources_request_handler;
-  cWebSocketRequestHandler* web_socket_request_handler;
   cWebServer* webserver;
 };
 
