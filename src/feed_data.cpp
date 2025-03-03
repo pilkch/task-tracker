@@ -100,10 +100,13 @@ bool LoadFeedDataFromFile(const std::string& external_url)
 
 bool SaveFeedDataToFile()
 {
-  std::error_code ec;
-  if (!std::filesystem::create_directory("feed_data", ec)) {
-    std::cerr<<"Error creating directory feed_data"<<std::endl;
-    return false;
+  // Create the feed_data folder if it doesn't exist yet
+  if (!std::filesystem::exists("feed_data")) {
+    std::error_code ec;
+    if (!std::filesystem::create_directory("feed_data", ec)) {
+      std::cerr<<"SaveFeedDataToFile Error creating directory feed_data"<<std::endl;
+      return false;
+    }
   }
 
   std::lock_guard<std::mutex> lock(mutex_feed_data);
