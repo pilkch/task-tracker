@@ -298,7 +298,7 @@ bool cWebServer::Open(const util::cIPAddress& host, uint16_t port, const std::st
   if (fuzzing) {
     options.push_back({ MHD_OPTION_LISTENING_ADDRESS_REUSE, static_cast<intptr_t>(1), nullptr }); // So that we can bind the port repeatedly in quick succession
   } else {
-    options.push_back({ MHD_OPTION_CONNECTION_LIMIT, static_cast<intptr_t>(10), nullptr }); // Rate limit  to 100 simultaneous connections per IP
+    options.push_back({ MHD_OPTION_CONNECTION_LIMIT, static_cast<intptr_t>(10), nullptr }); // Rate limit to 10 simultaneous connections per IP
   }
 
 
