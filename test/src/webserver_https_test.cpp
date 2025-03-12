@@ -92,7 +92,7 @@ void WebServerTest::SetUp()
 {
   // Create the web server
   const bool fuzzing = false;
-  if (!web_server_manager.Create(host, port, "./server.key", "./server.crt", fuzzing, "PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB")) {
+  if (!web_server_manager.Create(host, port, "./test/configuration/unit_test_server.key", "./test/configuration/unit_test_server.crt", fuzzing, "PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB")) {
     std::cerr<<"Error creating web server"<<std::endl;
   }
 }

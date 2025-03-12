@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "running_in_container": false,
+    "ip": "192.168.0.3",
+    "port": 8443,
+    "external_url": "https://tasktracker.mydomain.home:8443/",
+    "https_private_key": "./configuration/server.key",
+    "https_public_cert": "./configuration/server.crt",
+    "token": "PJYC40Q3AFJMl1uidxivonEL1NZ3DXM9sAlPgoeSDu5ekFQzzP0D8uibgnvZxbkB",
+    "gitlab_url": "https://gitlab.mydomain.home:2443/",
+    "gitlab_api_token": "glpat-fdJCKZsdf_9fsjklERsf",
+    "gitlab_https_public_cert": "./configuration/gitlab_server.crt"
+  }
+}

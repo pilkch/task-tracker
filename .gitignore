@@ -8,7 +8,12 @@ fuzz/fuzz_web_server_https_request
 fuzz/fuzz_web_server_https_url
 unit_tests
 
-/configuration.json
+/test/configuration/unit_test_server.key
+/test/configuration/unit_test_server.crt
+
+/configuration/configuration.json
+/configuration/*.crt
+/configuration/*.key
 feed_data
 /tasks.json
 /*.csr
