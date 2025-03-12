@@ -2,6 +2,7 @@ stages:
   - dependencies
   - build
   - tests-and-checks
+  - build-container-image
 
 default:
   before_script:
@@ -13,6 +14,7 @@ dependencies-libsecurityheaders:
     - linux
     - cpp
     - make
+  before_script: [] # Override the global before script
   script:
     - dnf install -y git
     # TODO: Use a real certificate for gitlab then we don't have to ignore self signed certificates
@@ -50,3 +52,15 @@ unit-test:
     - openssl x509 -req -sha256 -days 365 -in unit_test_server.csr -signkey unit_test_server.key -out unit_test_server.crt
     - mv unit_test_server.key unit_test_server.crt test/configuration/
     - ./unit_tests
+
+build-container-image:
+  stage: build-container-image
+  needs: [unit-test]
+  tags:
+    - build-container-image # Build on the shell gitlab runner
+  before_script: [] # Override the global before script
+  script:
+    - echo "CI_REGISTRY is $CI_REGISTRY"
+    - podman login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" --cert-dir /home/gitlab-runner/.gitlab-runner/certs/ $CI_REGISTRY
+    - podman build -t $CI_REGISTRY/dev/public/task-tracker:latest .
+    - podman push --cert-dir /home/gitlab-runner/.gitlab-runner/certs/ $CI_REGISTRY/dev/public/task-tracker:latest
