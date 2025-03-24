@@ -59,6 +59,15 @@ $ make -j
 
 ## Run the Unit Tests
 
+1. Generate self signed certificates:
+```bash
+openssl genrsa -out unit_test_server.key 2048
+openssl rsa -in unit_test_server.key -out unit_test_server.key
+openssl req -sha256 -new -key unit_test_server.key -out unit_test_server.csr -subj '/CN=localhost'
+openssl x509 -req -sha256 -days 365 -in unit_test_server.csr -signkey unit_test_server.key -out unit_test_server.crt
+mv unit_test_server.crt unit_test_server.key test/configuration/
+```
+2. Run the unit tests
 ```bash
 $ ./unit_tests
 ```
@@ -112,7 +121,7 @@ podman build --tag fedora:tasktracker -f ./Dockerfile
 NOTE: We need to use `allow_host_loopback` when the gitlab server is on the same host as us, otherwise you get weird can't connect errors when task-trackerd tries to connect to gitlab  
 ```bash
 mkdir -p feed_data
-podman run --init -v ./feed_data:/root/task-tracker/feed_data:z --network slirp4netns:allow_host_loopback=true -p 192.168.0.3:8443:8443 --shm-size 256m --name tasktracker --rm fedora:tasktracker
+podman run --init -v ./configuration:/root/task-tracker/configuration:ro,z -v ./feed_data:/root/task-tracker/feed_data:z --network slirp4netns:allow_host_loopback=true -p 192.168.0.3:8443:8443 --shm-size 256m --name tasktracker --rm fedora:tasktracker
 ```
 
 ### Use the feed

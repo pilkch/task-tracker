@@ -67,12 +67,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t data_length)
   // Create the web server
   tasktracker::cWebServerManager web_server_manager;
   const bool fuzzing = true;
-  if (!web_server_manager.Create(host, port, "../server.key", "../server.crt", fuzzing, "PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB")) {
+  if (!web_server_manager.Create(host, port, "../test/configuration/unit_test_server.key", "../test/configuration/unit_test_server.crt", fuzzing, "PJYM9sAlPgoeSDu5ekFC40Q3AFJMl1uidxivonEL1NZ3DXQzzP0D8uibgnvZxbkB")) {
     std::cerr<<"Error creating web server"<<std::endl;
     return -1;
   }
 
-  while (!PerformHTTPSGetRequest(std::span<const char>{(const char*)data, data_length}, port, "../server.crt")) {
+  while (!PerformHTTPSGetRequest(std::span<const char>{(const char*)data, data_length}, port, "../test/configuration/unit_test_server.crt")) {
   }
 
   std::cout<<"Shutting down server"<<std::endl;

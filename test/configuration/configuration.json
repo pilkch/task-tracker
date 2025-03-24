@@ -4,11 +4,11 @@
     "ip": "192.168.0.3",
     "port": 8443,
     "external_url": "https://tasktracker.mydomain.home:8443/",
-    "https_private_key": "./server.key",
-    "https_public_cert": "./server.crt",
+    "https_private_key": "./test/configuration/unit_test_server.key",
+    "https_public_cert": "./test/configuration/unit_test_server.crt",
     "token": "u5ekFC43AFJMl1uidPJYM9P0D8uibgnvZxbk0QsAlPgoeSDxivonEL1NZ3DXQzzB",
     "gitlab_url": "https://gitlab.mydomain.home:2443/",
     "gitlab_api_token": "glfgi-ijcxzvZXCJIO58FD348s",
-    "gitlab_https_public_cert": "./gitlab_server.crt"
+    "gitlab_https_public_cert": "./test/configuration/gitlab_server.crt"
   }
 }
