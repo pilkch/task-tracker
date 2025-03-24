@@ -44,8 +44,8 @@ int main(int argc, char* argv[])
 
   // Parse the configuration file
   tasktracker::cSettings settings;
-  if (!settings.LoadFromFile("./configuration.json")) {
-    std::cerr<<"Error parsing configuration.json"<<std::endl;
+  if (!settings.LoadFromFile("./configuration/configuration.json")) {
+    std::cerr<<"Error parsing configuration/configuration.json"<<std::endl;
     return EXIT_FAILURE;
   }
 
