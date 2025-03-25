@@ -3,6 +3,8 @@
 Tool to collect issues from the Gitlab API, keeps track of tasks due dates, the task tracker serves an RSS feed, adding entries to the feed as the expiry date approaches and when a task expires.  
 You can use it to keep track of anything with a due date in your Gitlab issues, for example certificate expiries, OS updates, car services, oil changes, seed planting, assignments.
 
+### Gitlab Issue Due Date Tracking
+
 ```mermaid
 flowchart TD
     GL(Gitlab) --> |Gitlab API| TT
@@ -21,6 +23,15 @@ flowchart TD
     TL("task_list") --> FD
     FD("feed_data") --> RF("RSS Feed")
     RF --> TB("RSS Reader, Thunderbird for example")
+```
+
+### Filesystem Health Checking
+
+```mermaid
+flowchart TD
+    FS("File Server<br>BTRFS drive array<br>syslog-ng logs") -- Forward logs --> SS("syslog-ng server")
+    SS -- Filter HTTPS POST --> TT
+    TT("tasktrackerd<br>feed_data/feed.json") -- Serve RSS feed --> TB("Thunderbird")
 ```
 
 ## Third Party Libraries and Resources
