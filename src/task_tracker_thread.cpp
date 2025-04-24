@@ -57,12 +57,12 @@ void cTaskTrackerThread::UpdateTaskListFromGitlabIssues(cTaskList& task_list)
   }
 }
 
-void cTaskTrackerThread::AddFeedEntry(std::vector<cFeedEntry>& entries_to_add, const cTask& task, bool high_priority, const std::string& summary)
+void cTaskTrackerThread::AddFeedEntry(std::vector<cFeedEntry>& entries_to_add, const cTask& task, bool high_priority, const std::string& due_text_fragment)
 {
-  std::cout<<"Adding feed entry \""<<task.title<<"\": "<<summary<<std::endl;
+  std::cout<<"Adding feed entry \""<<task.title<<"\": Task is "<<due_text_fragment<<std::endl;
   cFeedEntry entry;
-  entry.title = (high_priority ? "🚩" : "🔔") + task.title;
-  entry.summary = summary;
+  entry.title = (high_priority ? "🚩" : "🔔") + task.title + " " + due_text_fragment;
+  entry.summary = "Task is " + due_text_fragment;
   entry.date_updated = util::GetTime();
   entry.id = feed::GenerateFeedID(rng);
   entry.link = task.link;
@@ -80,13 +80,13 @@ void cTaskTrackerThread::CheckTasksAndUpdateFeedEntries(cTaskList& task_list, co
   for (auto&& task : task_list.tasks) {
     // Check the date on each task
     if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(3), start_time, end_time)) {
-      AddFeedEntry(entries_to_add, task.second, false, "Task is due in 3 weeks");
+      AddFeedEntry(entries_to_add, task.second, false, "due in 3 weeks");
     } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::weeks(1), start_time, end_time)) {
-      AddFeedEntry(entries_to_add, task.second, false, "Task is due in 1 week");
+      AddFeedEntry(entries_to_add, task.second, false, "due in 1 week");
     } else if (util::IsDateWithinRange(task.second.date_due - std::chrono::days(1), start_time, end_time)) {
-      AddFeedEntry(entries_to_add, task.second, true, "Task is due in 1 day");
+      AddFeedEntry(entries_to_add, task.second, true, "due in 1 day");
     } else if (util::IsDateWithinRange(task.second.date_due, start_time, end_time)) {
-      AddFeedEntry(entries_to_add, task.second, true, "Task is due now!");
+      AddFeedEntry(entries_to_add, task.second, true, "due now!");
     }
   }
 
